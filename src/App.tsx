@@ -114,10 +114,11 @@ function App() {
     setSelectedPeriod(period);
   };
 
-  return (
-    <Router>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
+ return (
+  <Router>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <AuthProvider> {/* 👈 Aquí envolvemos TODO */}
         <PlacesContext.Provider value={places}>
           <Routes>
             <Route path="/login" element={<Login />} />
@@ -155,9 +156,9 @@ function App() {
             } />
           </Routes>
         </PlacesContext.Provider>
-      </ThemeProvider>
-    </Router>
-  );
-}
+      </AuthProvider>
+    </ThemeProvider>
+  </Router>
+);
 
 export default App;
