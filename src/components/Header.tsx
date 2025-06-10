@@ -99,10 +99,15 @@ const Header: React.FC<HeaderProps> = ({ onPeriodChange }) => {
     setMobileMoreAnchorEl(null);
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+  try {
+    await signOutUser();
     navigate('/login');
-  };
+  } catch (error) {
+    console.error('Logout error:', error);
+  }
+};
+
 
   const notifications = [
     { 
