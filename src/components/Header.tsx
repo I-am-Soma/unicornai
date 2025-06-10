@@ -33,7 +33,7 @@ import {
   Dashboard as DashboardIcon
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { logout } from '../utils/storage';
+import { useAuth } from '../context/AuthContext';
 
 export type Period = 'monthly' | 'weekly' | 'daily';
 
@@ -52,6 +52,9 @@ const Header: React.FC<HeaderProps> = ({ onPeriodChange }) => {
   const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const { user, signOutUser } = useAuth();
+
+  const userName = user?.email?.split('@')[0] || 'User';
 
   useEffect(() => {
     // Get user data from localStorage
