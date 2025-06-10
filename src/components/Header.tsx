@@ -273,7 +273,7 @@ const Header: React.FC<HeaderProps> = ({ onPeriodChange }) => {
           <MenuItem onClick={() => { handleClose(); navigate('/settings'); }}>
             <PersonIcon sx={{ mr: 2 }} /> Profile
           </MenuItem>
-          <MenuItem onClick={() => { handleClose(); navigate('/settings'); }}>
+          <MenuItem onClick={(event) => { handleClose(); handleSearchClick(event); }}>
             <SettingsIcon sx={{ mr: 2 }} /> Settings
           </MenuItem>
           <Divider />
