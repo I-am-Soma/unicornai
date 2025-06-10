@@ -54,8 +54,6 @@ const Header: React.FC<HeaderProps> = ({ onPeriodChange }) => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { user, signOutUser } = useAuth();
 
-  const userName = user?.email?.split('@')[0] || 'User';
-
   useEffect(() => {
     // Get user data from localStorage
     const userDataStr = localStorage.getItem('unicorn_user');
