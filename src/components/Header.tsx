@@ -92,7 +92,6 @@ const Header: React.FC<HeaderProps> = ({ onPeriodChange }) => {
   }
 };
 
-
   const notifications = [
     { 
       id: 1, 
