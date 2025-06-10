@@ -148,6 +148,7 @@ function App() {
                         <Route path="/clients" element={<ClientsConfig />} />
                         <Route path="/help" element={<HelpCenter />} />
                         <Route path="*" element={<Navigate to="/" replace />} />
+                        <Route path="/register" element={<Register />} />
                       </Routes>
                     </Box>
                   </Box>
