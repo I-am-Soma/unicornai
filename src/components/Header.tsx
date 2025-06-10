@@ -47,12 +47,13 @@ const Header: React.FC<HeaderProps> = ({ onPeriodChange }) => {
   const [notificationAnchor, setNotificationAnchor] = useState<null | HTMLElement>(null);
   const [mobileMoreAnchorEl, setMobileMoreAnchorEl] = useState<null | HTMLElement>(null);
   const [searchAnchor, setSearchAnchor] = useState<null | HTMLElement>(null);
-  const [userName, setUserName] = useState<string>('Admin');
+  const userName = user?.email?.split('@')[0] || 'User';
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { user, signOutUser } = useAuth();
+
 
   useEffect(() => {
     // Get user data from localStorage
@@ -275,8 +276,8 @@ const Header: React.FC<HeaderProps> = ({ onPeriodChange }) => {
               {userName}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              admin@unicorn.ai
-            </Typography>
+  {user?.email}
+</Typography>
           </Box>
           <Divider />
           <MenuItem onClick={() => { handleClose(); navigate('/settings'); }}>
