@@ -54,22 +54,6 @@ const Header: React.FC<HeaderProps> = ({ onPeriodChange }) => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { user, signOutUser } = useAuth();
 
-
-  useEffect(() => {
-    // Get user data from localStorage
-    const userDataStr = localStorage.getItem('unicorn_user');
-    if (userDataStr) {
-      try {
-        const userData = JSON.parse(userDataStr);
-        if (userData.name) {
-          setUserName(userData.name.split(' ')[0]); // Get first name
-        }
-      } catch (e) {
-        console.error('Error parsing user data:', e);
-      }
-    }
-  }, []);
-
   const handlePeriodChange = (event: SelectChangeEvent) => {
     const newPeriod = event.target.value as Period;
     setPeriod(newPeriod);
