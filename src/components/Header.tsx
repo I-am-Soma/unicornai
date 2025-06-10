@@ -47,12 +47,13 @@ const Header: React.FC<HeaderProps> = ({ onPeriodChange }) => {
   const [notificationAnchor, setNotificationAnchor] = useState<null | HTMLElement>(null);
   const [mobileMoreAnchorEl, setMobileMoreAnchorEl] = useState<null | HTMLElement>(null);
   const [searchAnchor, setSearchAnchor] = useState<null | HTMLElement>(null);
-  const userName = user?.email?.split('@')[0] || 'User';
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { user, signOutUser } = useAuth();
+  const userName = user?.email?.split('@')[0] || 'User';
+
 
   const handlePeriodChange = (event: SelectChangeEvent) => {
     const newPeriod = event.target.value as Period;
@@ -88,9 +89,10 @@ const Header: React.FC<HeaderProps> = ({ onPeriodChange }) => {
     await signOutUser();
     navigate('/login');
   } catch (error) {
-    console.error('Logout error:', error);
+    console.error("Logout failed:", error);
   }
 };
+
 
   const notifications = [
     { 
