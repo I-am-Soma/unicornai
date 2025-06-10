@@ -110,56 +110,84 @@ function App() {
     loadPlaces();
   }, []);
 
+ import React, { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { ThemeProvider, CssBaseline, Box } from '@mui/material';
+import { createTheme } from '@mui/material/styles';
+import Sidebar from './components/Sidebar';
+import Header, { Period } from './components/Header';
+import Dashboard from './components/Dashboard';
+import LeadsList from './components/LeadsList';
+import Campaigns from './components/Campaigns';
+import Conversations from './components/Conversations';
+import ReportsAnalytics from './components/ReportsAnalytics';
+import Settings from './components/Settings';
+import ClientsConfig from './components/ClientsConfig';
+import HelpCenter from './components/HelpCenter';
+import Login from './components/Login';
+import Register from './components/Register';
+import AuthGuard from './components/AuthGuard';
+import { AuthProvider } from './context/AuthContext';
+import { PlacesContext } from './context/PlacesContext';
+
+const theme = createTheme();
+
+const App = () => {
+  const [selectedPeriod, setSelectedPeriod] = useState<Period>('monthly');
+  const places = {}; // Ajusta si usas lugares reales
+
   const handlePeriodChange = (period: Period) => {
     setSelectedPeriod(period);
   };
 
- return (
-  <Router>
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <AuthProvider> {/* 👈 Aquí envolvemos TODO */}
-        <PlacesContext.Provider value={places}>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/*" element={
-              <AuthGuard>
-                <Box sx={{ display: 'flex' }}>
-                  <Sidebar />
-                  <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-                    <Header onPeriodChange={handlePeriodChange} />
-                    <Box
-                      component="main"
-                      sx={{
-                        flexGrow: 1,
-                        height: '100vh',
-                        overflow: 'auto',
-                        mt: 8,
-                        backgroundColor: theme.palette.background.default,
-                      }}
-                    >
-                      <Routes>
-                        <Route path="/" element={<Dashboard period={selectedPeriod} />} />
-                        <Route path="/leads" element={<LeadsList />} />
-                        <Route path="/campaigns" element={<Campaigns />} />
-                        <Route path="/conversations" element={<Conversations />} />
-                        <Route path="/reports" element={<ReportsAnalytics />} />
-                        <Route path="/settings" element={<Settings />} />
-                        <Route path="/clients" element={<ClientsConfig />} />
-                        <Route path="/help" element={<HelpCenter />} />
-                        <Route path="*" element={<Navigate to="/" replace />} />
-                        <Route path="/register" element={<Register />} />
-                      </Routes>
+  return (
+    <Router>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <AuthProvider> {/* 👈 Aquí envolvemos TODO */}
+          <PlacesContext.Provider value={places}>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} /> {/* ✅ Registro fuera de AuthGuard */}
+              <Route path="/*" element={
+                <AuthGuard>
+                  <Box sx={{ display: 'flex' }}>
+                    <Sidebar />
+                    <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+                      <Header onPeriodChange={handlePeriodChange} />
+                      <Box
+                        component="main"
+                        sx={{
+                          flexGrow: 1,
+                          height: '100vh',
+                          overflow: 'auto',
+                          mt: 8,
+                          backgroundColor: theme.palette.background.default,
+                        }}
+                      >
+                        <Routes>
+                          <Route path="/" element={<Dashboard period={selectedPeriod} />} />
+                          <Route path="/leads" element={<LeadsList />} />
+                          <Route path="/campaigns" element={<Campaigns />} />
+                          <Route path="/conversations" element={<Conversations />} />
+                          <Route path="/reports" element={<ReportsAnalytics />} />
+                          <Route path="/settings" element={<Settings />} />
+                          <Route path="/clients" element={<ClientsConfig />} />
+                          <Route path="/help" element={<HelpCenter />} />
+                          <Route path="*" element={<Navigate to="/" replace />} />
+                        </Routes>
+                      </Box>
                     </Box>
                   </Box>
-                </Box>
-              </AuthGuard>
-            } />
-          </Routes>
-        </PlacesContext.Provider>
-      </AuthProvider>
-    </ThemeProvider>
-  </Router>
-);
+                </AuthGuard>
+              } />
+            </Routes>
+          </PlacesContext.Provider>
+        </AuthProvider>
+      </ThemeProvider>
+    </Router>
+  );
+};
 
 export default App;
+
