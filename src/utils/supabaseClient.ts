@@ -19,3 +19,5 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   global: { fetch },
 });
 
+// Exportación por defecto para compatibilidad con imports "default"
+export default supabase;
