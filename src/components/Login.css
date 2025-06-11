@@ -43,22 +43,23 @@
   justify-content: center; /* Centra todo verticalmente */
 }
 
-/* Header con logo - Centrado perfecto */
+/* Header con logo - Reducido el margen */
 .login-header {
   text-align: center;
-  margin-bottom: 15px;
+  margin-bottom: 15px; /* Reducido de 20px a 15px */
   display: flex;
   justify-content: center;
   align-items: center;
 }
 .login-header img {
-  width: 80px;
+  width: 80px; /* Reducido de 90px a 80px */
   height: 80px;
   filter: drop-shadow(0 0 25px rgba(99,102,241,0.6));
   animation: logoFloat 6s ease-in-out infinite;
   display: block;
   margin: 0 auto;
 }
+
 /* Formulario centrado con espaciado optimizado */
 .login-form {
   max-width: 360px;
@@ -205,20 +206,98 @@
   to { transform: rotate(360deg); }
 }
 
+/* === REGISTER STYLES - Mismos estilos que login === */
+
+/* Fondo y wrapper para register */
+.register-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0d0d0d, #1a1a1a);
+  position: relative;
+  overflow: visible;
+  padding: 0;
+}
+
+/* Contenedor del register */
+.register-container {
+  width: 100%;
+  max-width: 420px;
+  min-height: 520px; /* Ligeramente más alto para campos adicionales */
+  background: rgba(15,15,20,0.85);
+  border-radius: 20px;
+  padding: 25px 30px;
+  box-shadow:
+    0 0 30px rgba(0,255,255,0.4),
+    0 0 60px rgba(0,255,255,0.2),
+    inset 0 0 30px rgba(0,0,0,0.3);
+  border: 2px solid rgba(0,234,255,0.3);
+  backdrop-filter: blur(15px);
+  animation: containerEntry 0.8s ease-out;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Header para register */
+.register-header {
+  text-align: center;
+  margin-bottom: 15px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.register-header img {
+  width: 80px;
+  height: 80px;
+  filter: drop-shadow(0 0 25px rgba(99,102,241,0.6));
+  animation: logoFloat 6s ease-in-out infinite;
+  display: block;
+  margin: 0 auto;
+}
+
+/* Formulario de register */
+.register-form {
+  max-width: 360px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  padding: 0;
+}
+
+/* Enlaces de register (ej: Already have account? Sign In) */
+.register-options {
+  display: flex;
+  justify-content: center !important;
+  gap: 20px !important;
+  margin: 8px auto 0 auto !important;
+  width: 100% !important;
+}
+.register-options a {
+  flex: 1;
+  text-align: center;
+  color: #00eaff;
+  text-decoration: none;
+  font-size: 14px;
+}
+
 /* Responsive para pantallas pequeñas */
 @media (max-height: 600px) {
-  .login-container {
+  .login-container, .register-container {
     min-height: auto;
     padding: 20px 30px;
   }
-  .login-header {
+  .login-header, .register-header {
     margin-bottom: 12px;
   }
-  .login-header img {
+  .login-header img, .register-header img {
     width: 70px;
     height: 70px;
   }
-  .login-form {
+  .login-form, .register-form {
     gap: 12px;
   }
 }
