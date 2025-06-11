@@ -1,9 +1,8 @@
-
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export interface User {
   id: string;
@@ -14,9 +13,7 @@ export interface User {
   provider?: string;
 }
 
-import { createClient } from '@supabase/supabase-js';
-const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY);
-
+// 🔐 Iniciar sesión con email y contraseña
 export const signInWithEmail = async (email: string, password: string): Promise<User> => {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
@@ -26,6 +23,7 @@ export const signInWithEmail = async (email: string, password: string): Promise<
   }
 
   const sessionUser = data.user;
+
   const user: User = {
     id: sessionUser.id,
     email: sessionUser.email || '',
@@ -35,58 +33,37 @@ export const signInWithEmail = async (email: string, password: string): Promise<
     provider: sessionUser.app_metadata?.provider
   };
 
-  localStorage.setItem('unicorn_user', JSON.stringify(user));
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('unicorn_user', JSON.stringify(user));
+  }
+
   return user;
 };
 
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('unicorn_user', JSON.stringify(user));
-      }
-
-      return user;
+// 🌐 Login con OAuth (Google, Facebook, LinkedIn)
+export const signInWithOAuth = async (provider: 'google' | 'facebook' | 'linkedin') => {
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider,
+    options: {
+      redirectTo: window.location.origin // o una ruta tipo `${window.location.origin}/auth/callback`
     }
+  });
 
-    throw new Error('Invalid email or password');
-  } catch (error) {
-    console.error('Sign in error:', error);
-    throw error;
+  if (error) {
+    console.error(`${provider} sign in error:`, error.message);
+    throw new Error(error.message);
   }
 };
 
-export const signInWithOAuth = async (provider: 'google' | 'facebook' | 'linkedin'): Promise<User> => {
-  try {
-    await new Promise(resolve => setTimeout(resolve, 800));
-
-    const user: User = {
-      id: `${provider}_user_id`,
-      email: `user@${provider}.com`,
-      name: `${provider.charAt(0).toUpperCase() + provider.slice(1)} User`,
-      role: 'user',
-      provider: provider
-    };
-
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('unicorn_user', JSON.stringify(user));
-    }
-
-    return user;
-  } catch (error) {
-    console.error(`${provider} sign in error:`, error);
-    throw error;
-  }
-};
-
+// 🔓 Cerrar sesión
 export const signOut = async (): Promise<void> => {
-  try {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('unicorn_user');
-    }
-  } catch (error) {
-    console.error('Sign out error:', error);
-    throw error;
+  await supabase.auth.signOut();
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('unicorn_user');
   }
 };
 
+// 👤 Obtener usuario actual
 export const getCurrentUser = (): User | null => {
   try {
     if (typeof window === 'undefined') return null;
@@ -99,6 +76,7 @@ export const getCurrentUser = (): User | null => {
   }
 };
 
+// ✅ Verificar si está autenticado
 export const isAuthenticated = (): boolean => {
   return !!getCurrentUser();
 };
