@@ -12,15 +12,13 @@ const Register: React.FC = () => {
     setSuccessMsg('');
 
     const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/login`,
-        data: {
-          nombre: email.split('@')[0] // útil si usas triggers para poblar 'users'
-        }
-      }
-    });
+  email,
+  password,
+  options: {
+    emailRedirectTo: `${window.location.origin}/login`,  // ahora será https://app.useunicorn.app/login
+    data: { nombre: email.split('@')[0] }
+  }
+});
 
     if (error) {
       console.error('Error during sign up:', error.message);
