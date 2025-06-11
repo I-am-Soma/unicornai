@@ -1,5 +1,5 @@
 /* Fondo y wrapper */
-.login-wrapper {
+.login-wrapper, .register-wrapper {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -7,7 +7,7 @@
   background: linear-gradient(135deg, #0d0d0d, #1a1a1a);
   position: relative;
   overflow: visible;
-  padding: 0;
+  padding: 20px;
 }
 
 /* Canvas de partículas */
@@ -22,17 +22,17 @@
   opacity: 0.8;
 }
 
-/* Contenedor del login - Reducido y mejor proporcionado */
-.login-container {
+/* Contenedor del login/register - Mejorado */
+.login-container, .register-container {
   width: 100%;
-  max-width: 420px;
-  min-height: 480px; /* Reducido de 540px para menos espacio muerto */
+  max-width: 480px; /* Aumentado de 420px para más espacio */
+  min-height: 580px; /* Aumentado para mejor proporción */
   background: rgba(15,15,20,0.85);
-  border-radius: 20px;
-  padding: 25px 30px; /* Reducido padding vertical de 35px a 25px */
+  border-radius: 24px; /* Ligeramente más redondeado */
+  padding: 40px 35px; /* Más padding para respirar */
   box-shadow:
-    0 0 30px rgba(0,255,255,0.4),
-    0 0 60px rgba(0,255,255,0.2),
+    0 0 40px rgba(0,255,255,0.4),
+    0 0 80px rgba(0,255,255,0.2),
     inset 0 0 30px rgba(0,0,0,0.3);
   border: 2px solid rgba(0,234,255,0.3);
   backdrop-filter: blur(15px);
@@ -40,53 +40,83 @@
   z-index: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center; /* Centra todo verticalmente */
+  justify-content: center;
 }
 
-/* Header con logo - Reducido el margen */
-.login-header {
+/* Header con logo - Mejorado */
+.login-header, .register-header {
   text-align: center;
-  margin-bottom: 15px; /* Reducido de 20px a 15px */
+  margin-bottom: 25px; /* Más espacio */
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
 }
-.login-header img {
-  width: 80px; /* Reducido de 90px a 80px */
-  height: 80px;
+
+.login-header img, .register-header img {
+  width: 90px; /* Restaurado tamaño original */
+  height: 90px;
   filter: drop-shadow(0 0 25px rgba(99,102,241,0.6));
   animation: logoFloat 6s ease-in-out infinite;
   display: block;
-  margin: 0 auto;
+  margin: 0 auto 10px auto;
+}
+
+/* Título opcional debajo del logo */
+.login-header h2, .register-header h2 {
+  color: #00eaff;
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0;
+  text-shadow: 0 0 20px rgba(0,234,255,0.5);
+  letter-spacing: 1px;
 }
 
 /* Formulario centrado con espaciado optimizado */
-.login-form {
-  max-width: 360px;
+.login-form, .register-form {
+  max-width: 400px; /* Aumentado de 360px */
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 15px; /* Reducido de 20px a 15px */
+  gap: 18px; /* Ligeramente más espacio */
   padding: 0;
 }
 
-/* Inputs y toggle */
+/* Inputs mejorados */
 .input-container {
   position: relative;
   width: 100%;
 }
+
 .input-neon {
   width: 100%;
-  padding: 14px 20px; /* Reducido padding vertical de 16px a 14px */
+  padding: 16px 20px; /* Más padding vertical */
   border: 2px solid rgba(0,234,255,0.3);
   background: rgba(0,0,0,0.7);
   color: #fff;
-  border-radius: 12px;
+  border-radius: 14px; /* Más redondeado */
   box-shadow:
     0 0 15px rgba(0,234,255,0.2),
     inset 0 0 15px rgba(0,0,0,0.3);
   font-family: 'Segoe UI', Tahoma, sans-serif;
+  font-size: 16px;
+  transition: all 0.3s ease;
 }
+
+.input-neon:focus {
+  outline: none;
+  border-color: rgba(0,234,255,0.6);
+  box-shadow:
+    0 0 25px rgba(0,234,255,0.4),
+    inset 0 0 15px rgba(0,0,0,0.3);
+  transform: translateY(-1px);
+}
+
+.input-neon::placeholder {
+  color: rgba(255,255,255,0.6);
+}
+
+/* Toggle de contraseña mejorado */
 .password-toggle {
   position: absolute;
   right: 15px;
@@ -96,208 +126,220 @@
   border: none;
   color: #00eaff;
   cursor: pointer;
+  padding: 5px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
 }
 
-/* Botón principal */
+.password-toggle:hover {
+  background: rgba(0,234,255,0.1);
+  transform: translateY(-50%) scale(1.1);
+}
+
+/* Botón principal mejorado */
 .btn-neon {
   position: relative;
   width: 100%;
-  padding: 14px 20px; /* Reducido padding vertical de 16px a 14px */
+  padding: 16px 20px; /* Más altura */
   background: linear-gradient(135deg, #00eaff, #00ff99);
   color: #000;
   font-weight: 700;
+  font-size: 16px;
   border: none;
-  border-radius: 12px;
+  border-radius: 14px;
   box-shadow:
-    0 0 20px rgba(0,234,255,0.4),
-    0 8px 25px rgba(0,0,0,0.3);
+    0 0 25px rgba(0,234,255,0.4),
+    0 10px 30px rgba(0,0,0,0.3);
   cursor: pointer;
   overflow: hidden;
-  margin-top: 5px; /* Pequeño margen superior */
+  margin-top: 8px;
+  transition: all 0.3s ease;
+  letter-spacing: 1px;
 }
+
+.btn-neon:hover:not(.loading) {
+  transform: translateY(-2px);
+  box-shadow:
+    0 0 35px rgba(0,234,255,0.6),
+    0 15px 40px rgba(0,0,0,0.4);
+}
+
 .btn-neon.loading {
   pointer-events: none;
+  opacity: 0.8;
 }
+
 .btn-neon.loading::after {
   content: '';
   position: absolute;
   top: 50%; left: 50%;
-  width: 20px; height: 20px;
-  margin: -10px 0 0 -10px;
-  border: 2px solid transparent;
-  border-top-color: #fff;
+  width: 22px; height: 22px;
+  margin: -11px 0 0 -11px;
+  border: 3px solid transparent;
+  border-top-color: #000;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
 
-/* Enlaces Forgot / SignUp - Reducido margen */
-.login-options {
+/* Enlaces mejorados */
+.login-options, .register-options {
   display: flex;
   justify-content: center !important;
   gap: 20px !important;
-  margin: 8px auto 0 auto !important; /* Reducido margen superior de 10px a 8px */
+  margin: 12px auto 0 auto !important;
   width: 100% !important;
 }
-.login-options a {
-  flex: 1;
-  text-align: center;
-  color: #00eaff;
-  text-decoration: none;
-  font-size: 14px; /* Tamaño de fuente ligeramente más pequeño */
-}
 
-/* Separador OR - Reducido margen */
-.separator {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  margin: 12px auto !important; /* Reducido de 20px a 12px */
-  gap: 15px;
-}
-.separator-line {
-  flex: 1;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(0,234,255,0.5), transparent);
-}
-.separator-text {
-  color: #00eaff;
-  padding: 0 10px;
-  font-weight: 600;
-  font-size: 14px; /* Tamaño de fuente más pequeño */
-}
-
-/* OAuth buttons - Reducido margen y tamaño */
-.oauth-buttons {
-  display: flex;
-  justify-content: center !important;
-  gap: 12px !important; /* Reducido de 15px a 12px */
-  margin: 10px auto 0 !important; /* Reducido margen superior de 15px a 10px */
-  width: 100%;
-}
-.oauth-btn {
-  width: 55px; /* Reducido de 60px a 55px */
-  height: 55px;
-  border: none;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: transform 0.2s ease; /* Añadido efecto hover */
-}
-.oauth-btn:hover {
-  transform: translateY(-2px);
-}
-.google { background: #db4437; color: #fff; }
-.facebook { background: #1877f2; color: #fff; }
-.linkedin { background: #0a66c2; color: #fff; }
-
-/* Animaciones */
-@keyframes containerEntry {
-  from { opacity: 0; transform: translateY(50px) scale(0.9); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-@keyframes logoFloat {
-  0%,100% { transform: translateY(0) rotate(0deg); }
-  33%     { transform: translateY(-8px) rotate(2deg); }
-  66%     { transform: translateY(-12px) rotate(-2deg); }
-}
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* === REGISTER STYLES - Mismos estilos que login === */
-
-/* Fondo y wrapper para register */
-.register-wrapper {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  background: linear-gradient(135deg, #0d0d0d, #1a1a1a);
-  position: relative;
-  overflow: visible;
-  padding: 0;
-}
-
-/* Contenedor del register */
-.register-container {
-  width: 100%;
-  max-width: 420px;
-  min-height: 520px; /* Ligeramente más alto para campos adicionales */
-  background: rgba(15,15,20,0.85);
-  border-radius: 20px;
-  padding: 25px 30px;
-  box-shadow:
-    0 0 30px rgba(0,255,255,0.4),
-    0 0 60px rgba(0,255,255,0.2),
-    inset 0 0 30px rgba(0,0,0,0.3);
-  border: 2px solid rgba(0,234,255,0.3);
-  backdrop-filter: blur(15px);
-  animation: containerEntry 0.8s ease-out;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-/* Header para register */
-.register-header {
-  text-align: center;
-  margin-bottom: 15px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-.register-header img {
-  width: 80px;
-  height: 80px;
-  filter: drop-shadow(0 0 25px rgba(99,102,241,0.6));
-  animation: logoFloat 6s ease-in-out infinite;
-  display: block;
-  margin: 0 auto;
-}
-
-/* Formulario de register */
-.register-form {
-  max-width: 360px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  padding: 0;
-}
-
-/* Enlaces de register (ej: Already have account? Sign In) */
-.register-options {
-  display: flex;
-  justify-content: center !important;
-  gap: 20px !important;
-  margin: 8px auto 0 auto !important;
-  width: 100% !important;
-}
-.register-options a {
+.login-options a, .register-options a {
   flex: 1;
   text-align: center;
   color: #00eaff;
   text-decoration: none;
   font-size: 14px;
+  transition: all 0.3s ease;
+  padding: 5px;
+  border-radius: 8px;
 }
 
-/* Responsive para pantallas pequeñas */
-@media (max-height: 600px) {
+.login-options a:hover, .register-options a:hover {
+  color: #00ff99;
+  background: rgba(0,234,255,0.1);
+  text-shadow: 0 0 10px rgba(0,255,153,0.5);
+}
+
+/* Separador OR mejorado */
+.separator {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  margin: 20px auto !important;
+  gap: 15px;
+}
+
+.separator-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0,234,255,0.5), transparent);
+}
+
+.separator-text {
+  color: #00eaff;
+  padding: 0 15px;
+  font-weight: 600;
+  font-size: 14px;
+  text-shadow: 0 0 10px rgba(0,234,255,0.5);
+}
+
+/* OAuth buttons mejorados */
+.oauth-buttons {
+  display: flex;
+  justify-content: center !important;
+  gap: 15px !important;
+  margin: 15px auto 0 !important;
+  width: 100%;
+}
+
+.oauth-btn {
+  width: 60px;
+  height: 60px;
+  border: none;
+  border-radius: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+.oauth-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+}
+
+.oauth-btn:active {
+  transform: translateY(-1px);
+}
+
+.oauth-btn svg {
+  font-size: 24px;
+}
+
+.google { 
+  background: linear-gradient(135deg, #db4437, #c23321);
+  color: #fff;
+}
+
+.facebook { 
+  background: linear-gradient(135deg, #1877f2, #166fe5);
+  color: #fff;
+}
+
+.linkedin { 
+  background: linear-gradient(135deg, #0a66c2, #004182);
+  color: #fff;
+}
+
+/* Animaciones */
+@keyframes containerEntry {
+  from { 
+    opacity: 0; 
+    transform: translateY(50px) scale(0.9);
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes logoFloat {
+  0%, 100% { 
+    transform: translateY(0) rotate(0deg);
+  }
+  33% { 
+    transform: translateY(-8px) rotate(2deg);
+  }
+  66% { 
+    transform: translateY(-12px) rotate(-2deg);
+  }
+}
+
+@keyframes spin {
+  to { 
+    transform: rotate(360deg);
+  }
+}
+
+/* Responsive mejorado */
+@media (max-width: 768px) {
+  .login-wrapper, .register-wrapper {
+    padding: 15px;
+  }
+  
+  .login-container, .register-container {
+    max-width: 400px;
+    padding: 30px 25px;
+    min-height: auto;
+  }
+  
+  .login-form, .register-form {
+    max-width: 100%;
+    gap: 16px;
+  }
+}
+
+@media (max-height: 700px) {
   .login-container, .register-container {
     min-height: auto;
-    padding: 20px 30px;
+    padding: 25px 30px;
   }
+  
   .login-header, .register-header {
-    margin-bottom: 12px;
+    margin-bottom: 20px;
   }
+  
   .login-header img, .register-header img {
     width: 70px;
     height: 70px;
-  }
-  .login-form, .register-form {
-    gap: 12px;
   }
 }
