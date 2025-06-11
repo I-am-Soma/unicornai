@@ -11,25 +11,17 @@ import supabase from '../utils/supabaseClient';
 const generateId = () => Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 
 // LEADS
-export const fetchLeads = async () => {
-  try {
-    const { data: leads, error } = await supabase.from('Leads').select('*');
-    if (error) throw error;
-    if (leads && leads.length > 0) {
-      const mappedLeads = leads.map((lead) => ({
-        id: lead.id,
-        name: lead.business_name || '',
-        email: lead.website || '',
-        phone: lead.phone || '',
-        source: lead.source || '',
-        status: 'New',
-        priority: 'Medium',
-        notes: lead.address || '',
-        createdAt: lead.created_at,
-        rating: lead.rating || 0,
-        relevance: lead.relevance || 'Medium',
-        activar: lead.activar || false,
-      }));
+// src/api/leadsApi.ts
+export const fetchCampaigns = async (): Promise<any[]> => {
+  const { data, error } = await supabase
+    .from('Campaigns')
+    .select('*')
+    .order('created_at', { ascending: false });
+  console.log('🔥 fetchCampaigns → data:', data, ' error:', error);
+  if (error) throw error;
+  return data || [];
+};
+
       storeLeads(mappedLeads);
       return mappedLeads;
     }
