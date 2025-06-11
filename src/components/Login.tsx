@@ -19,9 +19,10 @@ import {
 import { signInWithEmail, signInWithOAuth } from '../utils/auth';
 import './Login.css';
 
-const unicornLogo = 'https://raw.githubusercontent.com/I-am-Soma/unicorn-landing/main/logo%20transparente.png';
+const unicornLogo =
+  'https://raw.githubusercontent.com/I-am-Soma/unicorn-landing/main/logo%20transparente.png';
 
-// (Si tienes un tipo Particle, impórtalo o define como any)
+// Si tienes un tipo Particle, impórtalo o decláralo; aquí lo dejamos any
 type Particle = any;
 
 const Login: React.FC = () => {
@@ -36,26 +37,27 @@ const Login: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const rafId = useRef<number | null>(null);
 
+  // Si ya hay sesión, redirige; inicializa partículas sólo en desktop
   useEffect(() => {
-    // Si ya hay sesión, redirige al dashboard
-    if (localStorage.getItem('unicorn_user')) navigate('/');
-
-    // Inicializa partículas en desktop
+    if (localStorage.getItem('unicorn_user')) {
+      navigate('/');
+      return;
+    }
     if (!isMobile) initParticles();
-
     return () => {
       if (rafId.current) cancelAnimationFrame(rafId.current);
     };
   }, [navigate, isMobile]);
 
+  // Lógica de partículas
   const initParticles = () => {
     const canvas = document.getElementById('particles-canvas') as HTMLCanvasElement;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
+
     const particles: Particle[] = [];
     const count = 150;
 
@@ -67,10 +69,13 @@ const Login: React.FC = () => {
       sy = Math.random() - 0.5;
       alpha = Math.random() * 0.5 + 0.5;
       grow = Math.random() > 0.5;
-      color = ['#1976D2','#ec4899','#8b5cf6','#06b6d4','#10b981','#00eaff','#00ff99'][Math.floor(Math.random()*7)];
+      color = ['#1976D2','#ec4899','#8b5cf6','#06b6d4','#10b981','#00eaff','#00ff99'][
+        Math.floor(Math.random() * 7)
+      ];
 
       update() {
-        this.x += this.sx; this.y += this.sy;
+        this.x += this.sx;
+        this.y += this.sy;
         if (this.x < 0 || this.x > canvas.width) this.sx = -this.sx;
         if (this.y < 0 || this.y > canvas.height) this.sy = -this.sy;
         this.size += this.grow ? 0.02 : -0.02;
@@ -114,6 +119,7 @@ const Login: React.FC = () => {
     animate();
   };
 
+  // Submit de email/password
   const onLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -122,12 +128,13 @@ const Login: React.FC = () => {
       await signInWithEmail(email, password);
       navigate('/');
     } catch (err: any) {
-      setError(err.message || 'Login error');
+      setError(err.message || 'Error al iniciar sesión');
     } finally {
       setLoading(false);
     }
   };
 
+  // OAuth
   const onOAuth = async (prov: 'google'|'facebook'|'linkedin') => {
     setLoading(true);
     setError('');
@@ -135,7 +142,7 @@ const Login: React.FC = () => {
       await signInWithOAuth(prov);
       navigate('/');
     } catch (err: any) {
-      setError(err.message || `${prov} login error`);
+      setError(err.message || `Error con ${prov}`);
     } finally {
       setLoading(false);
     }
@@ -161,6 +168,7 @@ const Login: React.FC = () => {
               required
             />
           </div>
+
           <div className="input-container">
             <input
               type={showPassword ? 'text' : 'password'}
@@ -175,7 +183,7 @@ const Login: React.FC = () => {
               className="password-toggle"
               onClick={() => setShowPassword(!showPassword)}
             >
-              {showPassword ? <VisibilityOff/> : <Visibility/>}
+              {showPassword ? <VisibilityOff /> : <Visibility />}
             </button>
           </div>
 
