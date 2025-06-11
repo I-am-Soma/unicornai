@@ -196,6 +196,7 @@ const Register: React.FC = () => {
               src={unicornLogo}
               alt="Unicorn AI Logo"
             />
+            <h2>UNICORN AI</h2>
           </div>
           
           <form onSubmit={handleRegister} className="register-form">
