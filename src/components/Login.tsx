@@ -395,7 +395,7 @@ const Login: React.FC = () => {
           </div>
         </div>
       </div>
-      
+      <p>¿No tienes cuenta? <Link to="/register">Register Here </Link></p>
       <Snackbar
         open={!!error}
         autoHideDuration={6000}
