@@ -366,16 +366,7 @@ const Login: React.FC = () => {
             <span style={{ color: '#00eaff', fontSize: '14px' }}>OR</span>
             <div style={{ flex: 1, height: '1px', background: 'rgba(0, 234, 255, 0.3)' }}></div>
           </div>
-          <p>¿No tienes cuenta? <Link to="/register">Register Here </Link></p>
-          <Box sx={{ textAlign: 'center', mt: 2, width: '90%' }}>
-+          <Typography variant="body2">
-+            ¿No tienes cuenta?{' '}
-+            <Link to="/register" style={{ color: '#00eaff' }}>
-+              Regístrate aquí
-+            </Link>
-+          </Typography>
-+        </Box>
-+      </div>  {/* <- cierre de .login-container */}
+          
           <div className="oauth-buttons" style={{ width: '90%', display: 'flex', justifyContent: 'space-between' }}>
             <button
               className="oauth-btn google"
