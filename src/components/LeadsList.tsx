@@ -249,15 +249,15 @@ const LeadsList: React.FC = () => {
         console.log(`✅ Lead encontrado: ${lead.name}, teléfono normalizado: ${normalizedPhone}, formato WhatsApp para Twilio: ${whatsappFormattedPhone}`);
 
         const conversationData = {
-          lead_phone: whatsappFormattedPhone, // Use the whatsapp: prefixed format for Twilio
-          last_message: "Hola, soy tu asistente virtual. ¿En qué puedo ayudarte hoy?",
-          agent_name: "Unicorn AI",
-          status: "New",
-          created_at: new Date().toISOString(),
-          origen: "unicorn",
-          // Removed 'canal_preferido' field as it's not needed if Twilio relies on 'lead_phone' format
-          procesar: false
-        };
+  lead_phone: whatsappFormattedPhone,
+  // ⚠️ No escribir mensaje inicial aquí, será generado dinámicamente por la IA (generarHistorialGPT)
+  last_message: "",
+  agent_name: "Unicorn AI",
+  status: "New",
+  created_at: new Date().toISOString(),
+  origen: "unicorn",
+  procesar: false
+};
 
         console.log('📤 Insertando en conversations:', conversationData);
 
