@@ -1,4 +1,4 @@
-import React, { useState, useEffect, createContext } from 'react';
+import React, { useEffect, useState, createContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme, CssBaseline, Box } from '@mui/material';
 
@@ -73,6 +73,10 @@ const theme = createTheme({
 });
 
 function App() {
+  // ① — Inserta aquí este bloque:
+  useEffect(() => {
+    console.log('🔗 Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
+  }, []);
   const [selectedPeriod, setSelectedPeriod] = useState<Period>('monthly');
   const [isInitialized, setIsInitialized] = useState(false);
   const [places, setPlaces] = useState<any[]>([]);
