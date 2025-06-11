@@ -1,4 +1,4 @@
-import supabase from './supabaseClient';
+import { supabase } from './supabaseClient';
 import type { User } from '../context/AuthContext';
 
 /**
