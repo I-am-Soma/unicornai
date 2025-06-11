@@ -289,7 +289,7 @@ const Login: React.FC = () => {
         </>
       )}
 
-      <div className="login-wrapper">
+            <div className="login-wrapper">
         <div className="login-container">
           <div className="login-header">
             <img
@@ -393,9 +393,19 @@ const Login: React.FC = () => {
               <LinkedInIcon fontSize="small" />
             </button>
           </div>
+
+          {/* Enlace de registro dentro del contenedor */}
+          <Box sx={{ textAlign: 'center', mt: 2, width: '90%' }}>
+            <Typography variant="body2">
+              ¿No tienes cuenta?{' '}
+              <Link to="/register" style={{ color: '#00eaff', textDecoration: 'none' }}>
+                Regístrate aquí
+              </Link>
+            </Typography>
+          </Box>
         </div>
       </div>
-      <p>¿No tienes cuenta? <Link to="/register">Register Here </Link></p>
+
       <Snackbar
         open={!!error}
         autoHideDuration={6000}
