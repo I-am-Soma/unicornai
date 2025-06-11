@@ -14,17 +14,30 @@ export interface User {
   provider?: string;
 }
 
-export const signInWithEmail = async (email: string, password: string): Promise<User> => {
-  try {
-    if (email === 'admin@unicorn.ai' && password === 'Unicorn2025!') {
-      await new Promise(resolve => setTimeout(resolve, 800));
+import { createClient } from '@supabase/supabase-js';
+const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY);
 
-      const user: User = {
-        id: '1',
-        email: 'admin@unicorn.ai',
-        name: 'Admin User',
-        role: 'admin'
-      };
+export const signInWithEmail = async (email: string, password: string): Promise<User> => {
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+  if (error) {
+    console.error('Supabase login error:', error.message);
+    throw new Error(error.message);
+  }
+
+  const sessionUser = data.user;
+  const user: User = {
+    id: sessionUser.id,
+    email: sessionUser.email || '',
+    name: sessionUser.user_metadata?.name || '',
+    avatar: sessionUser.user_metadata?.avatar_url || '',
+    role: 'user',
+    provider: sessionUser.app_metadata?.provider
+  };
+
+  localStorage.setItem('unicorn_user', JSON.stringify(user));
+  return user;
+};
 
       if (typeof window !== 'undefined') {
         localStorage.setItem('unicorn_user', JSON.stringify(user));
