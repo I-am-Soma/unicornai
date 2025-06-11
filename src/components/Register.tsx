@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { supabase } from '../supabaseClient'; // Asegúrate de tener configurado esto
+import supabase from '../supabaseClient'; // ✅ Correcto para export default
 
 const Register: React.FC = () => {
   const [email, setEmail] = useState('');
