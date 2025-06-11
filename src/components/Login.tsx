@@ -288,125 +288,135 @@ const Login: React.FC = () => {
           />
         </>
       )}
+{/* Asegúrate de tener estas importaciones arriba del archivo */}
+import { Link } from 'react-router-dom';
+import { Typography, Box } from '@mui/material';
 
-            <div className="login-wrapper">
-        <div className="login-container">
-          <div className="login-header">
-            <img
-              src={unicornLogo}
-              alt="Unicorn AI Logo"
-              style={{
-                width: 100,
-                height: 100,
-                objectFit: 'contain',
-                filter: 'drop-shadow(0 0 20px rgba(99, 102, 241, 0.5))',
-                animation: 'float 6s ease-in-out infinite'
-              }}
-            />
-          </div>
-          
-          <form onSubmit={handleLogin} style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <div style={{ width: '90%', marginBottom: '15px' }}>
-              <input
-                type="email"
-                className="input-neon"
-                placeholder="Email Address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                style={{ width: '100%' }}
-              />
-            </div>
-            
-            <div style={{ position: 'relative', width: '90%', marginBottom: '15px' }}>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                className="input-neon"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                style={{ width: '100%' }}
-              />
-              <IconButton
-                onClick={() => setShowPassword(!showPassword)}
-                style={{
-                  position: 'absolute',
-                  right: '10px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: '#00eaff'
-                }}
-              >
-                {showPassword ? <VisibilityOff /> : <Visibility />}
-              </IconButton>
-            </div>
-            
-            <button
-              type="submit"
-              className="btn-neon"
-              disabled={loading}
-              style={{
-                width: '90%',
-                textShadow: '0 0 5px rgba(0, 0, 0, 0.5)',
-                fontWeight: 'bold'
-              }}
-            >
-              {loading ? 'Signing in...' : 'SIGN IN'}
-            </button>
-            
-            <div className="login-options">
-              <a href="#" className="forgot-password">Forgot Password?</a>
-              <a href="#" className="signup">Sign Up</a>
-            </div>
-          </form>
-          
-          <div style={{ margin: '20px 0', width: '90%', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ flex: 1, height: '1px', background: 'rgba(0, 234, 255, 0.3)' }}></div>
-            <span style={{ color: '#00eaff', fontSize: '14px' }}>OR</span>
-            <div style={{ flex: 1, height: '1px', background: 'rgba(0, 234, 255, 0.3)' }}></div>
-          </div>
-          
-          <div className="oauth-buttons" style={{ width: '90%', display: 'flex', justifyContent: 'space-between' }}>
-            <button
-              className="oauth-btn google"
-              onClick={() => handleOAuthLogin('google')}
-              disabled={loading}
-              style={{ flex: 1, marginRight: '10px' }}
-            >
-              <GoogleIcon fontSize="small" />
-            </button>
-            <button
-              className="oauth-btn facebook"
-              onClick={() => handleOAuthLogin('facebook')}
-              disabled={loading}
-              style={{ flex: 1, marginRight: '10px' }}
-            >
-              <FacebookIcon fontSize="small" />
-            </button>
-            <button
-              className="oauth-btn linkedin"
-              onClick={() => handleOAuthLogin('linkedin')}
-              disabled={loading}
-              style={{ flex: 1 }}
-            >
-              <LinkedInIcon fontSize="small" />
-            </button>
-          </div>
-
-          {/* Enlace de registro dentro del contenedor */}
-          <Box sx={{ textAlign: 'center', mt: 2, width: '90%' }}>
-            <Typography variant="body2">
-              ¿No tienes cuenta?{' '}
-              <Link to="/register" style={{ color: '#00eaff', textDecoration: 'none' }}>
-                Regístrate aquí
-              </Link>
-            </Typography>
-          </Box>
-        </div>
+{/* Reemplaza tu bloque actual por este */}
+<div className="login-wrapper">
+  <div className="login-container">
+    <div className="login-header">
+      <img
+        src={unicornLogo}
+        alt="Unicorn AI Logo"
+        style={{
+          width: 100,
+          height: 100,
+          objectFit: 'contain',
+          filter: 'drop-shadow(0 0 20px rgba(99, 102, 241, 0.5))',
+          animation: 'float 6s ease-in-out infinite'
+        }}
+      />
+    </div>
+    
+    <form onSubmit={handleLogin} style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <div style={{ width: '90%', marginBottom: '15px' }}>
+        <input
+          type="email"
+          className="input-neon"
+          placeholder="Email Address"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          required
+          style={{ width: '100%' }}
+        />
       </div>
+      
+      <div style={{ position: 'relative', width: '90%', marginBottom: '15px' }}>
+        <input
+          type={showPassword ? 'text' : 'password'}
+          className="input-neon"
+          placeholder="Password"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          required
+          style={{ width: '100%' }}
+        />
+        <IconButton
+          onClick={() => setShowPassword(!showPassword)}
+          style={{
+            position: 'absolute',
+            right: '10px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            color: '#00eaff'
+          }}
+        >
+          {showPassword ? <VisibilityOff /> : <Visibility />}
+        </IconButton>
+      </div>
+      
+      <button
+        type="submit"
+        className="btn-neon"
+        disabled={loading}
+        style={{ width: '90%', textShadow: '0 0 5px rgba(0,0,0,0.5)', fontWeight: 'bold' }}
+      >
+        {loading ? 'Signing in...' : 'SIGN IN'}
+      </button>
+      
+      <div className="login-options" style={{ width: '90%', display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
+        <a href="#" className="forgot-password">Forgot Password?</a>
+        <a href="#" className="signup">Sign Up</a>
+      </div>
+    </form>
+    
+    <div style={{ margin: '20px 0', width: '90%', display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ flex: 1, height: 1, background: 'rgba(0,234,255,0.3)' }} />
+      <span style={{ color: '#00eaff', fontSize: 14 }}>OR</span>
+      <div style={{ flex: 1, height: 1, background: 'rgba(0,234,255,0.3)' }} />
+    </div>
+    
+    <div className="oauth-buttons" style={{ width: '90%', display: 'flex', justifyContent: 'space-between' }}>
+      <button
+        className="oauth-btn google"
+        onClick={() => handleOAuthLogin('google')}
+        disabled={loading}
+        style={{ flex: 1, marginRight: 10 }}
+      >
+        <GoogleIcon fontSize="small" />
+      </button>
+      <button
+        className="oauth-btn facebook"
+        onClick={() => handleOAuthLogin('facebook')}
+        disabled={loading}
+        style={{ flex: 1, marginRight: 10 }}
+      >
+        <FacebookIcon fontSize="small" />
+      </button>
+      <button
+        className="oauth-btn linkedin"
+        onClick={() => handleOAuthLogin('linkedin')}
+        disabled={loading}
+        style={{ flex: 1 }}
+      >
+        <LinkedInIcon fontSize="small" />
+      </button>
+    </div>
 
-      <Snackbar
+    {/* Enlace de registro */}
+    <Box sx={{ textAlign: 'center', mt: 2, width: '90%' }}>
+      <Typography variant="body2">
+        ¿Dont have an account?{' '}
+        <Link to="/register" style={{ color: '#00eaff', textDecoration: 'none' }}>
+          Register Here
+        </Link>
+      </Typography>
+    </Box>
+  </div>
+</div>
+
+{/* Mantén el Snackbar fuera del login-container, justo después */}
+<Snackbar
+  open={!!error}
+  autoHideDuration={6000}
+  onClose={() => setError('')}
+>
+  <Alert severity="error" onClose={() => setError('')}>
+    {error}
+  </Alert>
+</Snackbar>
+
         open={!!error}
         autoHideDuration={6000}
         onClose={() => setError('')}
