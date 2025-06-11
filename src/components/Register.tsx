@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import supabase from '../supabaseClient'; // ✅ Correcto para export default
+import supabase from '../supabaseClient';
 
 const Register: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -8,40 +8,55 @@ const Register: React.FC = () => {
   const [successMsg, setSuccessMsg] = useState('');
 
   const handleRegister = async () => {
-    const { error } = await supabase.auth.signUp({
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    const { data, error } = await supabase.auth.signUp({
       email,
-      password
+      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/login`,
+        data: {
+          nombre: email.split('@')[0] // útil si usas triggers para poblar 'users'
+        }
+      }
     });
 
     if (error) {
       console.error('Error during sign up:', error.message);
       setErrorMsg(error.message);
+    } else if (data.user) {
+      setSuccessMsg('Usuario registrado. Revisa tu correo para confirmar.');
     } else {
-      setSuccessMsg('User registered successfully! Check your email to confirm.');
-      setErrorMsg('');
+      setErrorMsg('Ocurrió un error inesperado. Intenta nuevamente.');
     }
   };
 
   return (
-    <div>
-      <h2>Register</h2>
+    <div style={{ padding: '2rem', maxWidth: '400px', margin: 'auto' }}>
+      <h2>Crear cuenta</h2>
       <input
         type="email"
-        placeholder="Email"
+        placeholder="Correo electrónico"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-      /><br />
+        style={{ width: '100%', marginBottom: '1rem' }}
+      />
       <input
         type="password"
-        placeholder="Password (min 6 chars)"
+        placeholder="Contraseña (mínimo 6 caracteres)"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
-      /><br />
-      <button onClick={handleRegister}>Register</button>
-      {errorMsg && <p style={{ color: 'red' }}>{errorMsg}</p>}
-      {successMsg && <p style={{ color: 'green' }}>{successMsg}</p>}
+        style={{ width: '100%', marginBottom: '1rem' }}
+      />
+      <button onClick={handleRegister} style={{ width: '100%' }}>
+        Registrarse
+      </button>
+      {errorMsg && <p style={{ color: 'red', marginTop: '1rem' }}>{errorMsg}</p>}
+      {successMsg && <p style={{ color: 'green', marginTop: '1rem' }}>{successMsg}</p>}
     </div>
   );
 };
 
 export default Register;
+
