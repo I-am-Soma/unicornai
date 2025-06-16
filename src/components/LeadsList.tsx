@@ -47,7 +47,7 @@ import axios from 'axios';
 import supabase from '../utils/supabaseClient';
 
 const GOOGLE_MAPS_WEBHOOK = 'https://hook.us2.make.com/qn218ny6kp3xhlb1ca52mmgp5ld6o4ig';
-const YELLOW_PAGES_WEBHOOK = 'https://hook.us2.make.com/cvd583e1n9yhle4p1ljlot34ajnger7d';
+const YELLOW_PAGES_WEBHOOK = 'https://hook.us2.make.com/wkkedv0x6sgwp1ofl8pav3oasrr5pf1z';
 
 const LeadsList: React.FC = () => {
   const [leads, setLeads] = useState<Lead[]>([]);
