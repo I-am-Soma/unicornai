@@ -34,6 +34,8 @@ const Conversations: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // ✅ 1. Estado para controlar el modo
+  const [modoRespuesta, setModoRespuesta] = useState<'text' | 'audio'>('text');
 
   useEffect(() => {
     loadConversations();
@@ -100,6 +102,7 @@ const Conversations: React.FC = () => {
     if (!selectedConversation || !newMessage.trim()) return;
 
     try {
+      // ✅ 3. Enviar también modoRespuesta al backend
       const { error: sendError } = await supabase
         .from('conversations')
         .insert([
@@ -111,6 +114,7 @@ const Conversations: React.FC = () => {
             status: 'In Progress',
             origen: 'unicorn',
             procesar: false,
+            modo_respuesta: modoRespuesta  // 👈 Campo nuevo
           }
         ]);
 
@@ -192,7 +196,7 @@ const Conversations: React.FC = () => {
             <List sx={{ flexGrow: 1, overflow: 'auto' }}>
               {filteredConversations.length === 0 ? (
                 <ListItem>
-                  <ListItemText 
+                  <ListItemText
                     primary="No hay conversaciones"
                     secondary="Las conversaciones aparecerán aquí"
                   />
@@ -292,7 +296,20 @@ const Conversations: React.FC = () => {
                   ))}
                 </Box>
                 <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
-                  <Box sx={{ display: 'flex', gap: 1 }}>
+                  {/* ✅ 2. Selector visual sobre el campo de mensaje */}
+                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                    <FormControl size="small" sx={{ minWidth: 120 }}>
+                      <InputLabel>Modo</InputLabel>
+                      <Select
+                        value={modoRespuesta}
+                        onChange={(e) => setModoRespuesta(e.target.value as 'text' | 'audio')}
+                        label="Modo"
+                      >
+                        <MenuItem value="text">Texto</MenuItem>
+                        <MenuItem value="audio">Audio</MenuItem>
+                      </Select>
+                    </FormControl>
+
                     <TextField
                       fullWidth
                       placeholder="Type your message..."
@@ -300,6 +317,7 @@ const Conversations: React.FC = () => {
                       onChange={(e) => setNewMessage(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                     />
+                    
                     <IconButton
                       color="primary"
                       onClick={handleSendMessage}
