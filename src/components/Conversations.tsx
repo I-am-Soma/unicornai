@@ -51,11 +51,10 @@ const Conversations: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const { data, error: supabaseError } = await supabase
+     const { data, error: supabaseError } = await supabase
   .from('conversations')
   .select('id, lead_phone, last_message, agent_name, created_at, status, origen, procesar')
-  .eq('procesar', false) // ✅ Este es el filtro correcto
-  .order('created_at', { ascending: true });
+  .order('created_at', { ascending: true }); // Sin filtro
 
       if (supabaseError) throw supabaseError;
 
