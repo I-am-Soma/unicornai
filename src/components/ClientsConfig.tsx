@@ -28,6 +28,7 @@ import {
   Cancel as CancelIcon,
 } from '@mui/icons-material';
 import supabase from '../utils/supabaseClient';
+import { getCurrentUser } from '../auth/authService'; // ✅ CAMBIO 1: Importar tu función
 
 interface Client {
   id: string;
@@ -37,6 +38,7 @@ interface Client {
   numero_whatsapp: string;
   created_at: string;
   tipo_respuesta?: 'texto' | 'voz';
+  user_id?: string; // ✅ CAMBIO 2: Agregar user_id
 }
 
 const ClientsConfig: React.FC = () => {
@@ -76,6 +78,13 @@ const ClientsConfig: React.FC = () => {
       return;
     }
 
+    // ✅ CAMBIO 3: Obtener usuario actual
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+      setError('Usuario no autenticado. Por favor inicia sesión.');
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('clientes')
@@ -86,6 +95,7 @@ const ClientsConfig: React.FC = () => {
           lista_servicios: editingClient.lista_servicios || '',
           numero_whatsapp: editingClient.numero_whatsapp,
           tipo_respuesta: editingClient.tipo_respuesta || 'texto',
+          user_id: currentUser.id, // ✅ CAMBIO 3: Agregar user_id
           created_at: editingClient.id ? undefined : new Date().toISOString(),
         });
 
