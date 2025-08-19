@@ -3,6 +3,8 @@ import type { User } from '../context/AuthContext';
 
 /**
  * Iniciar sesión con email y contraseña.
+ * Al autenticarse, también lee el client_id del user_metadata
+ * o lo recupera desde la tabla `users` y lo almacena en localStorage.
  */
 export const signInWithEmail = async (
   email: string,
@@ -25,12 +27,33 @@ export const signInWithEmail = async (
     provider: sessionUser.app_metadata?.provider || ''
   };
 
+  // Recuperar client_id desde el user_metadata o la tabla users
+  let clientId = sessionUser.user_metadata?.client_id;
+  if (!clientId) {
+    // Si no está en metadata, obtén el client_id desde la tabla users
+    const { data: userRow, error: fetchError } = await supabase
+      .from('users')
+      .select('client_id')
+      .eq('id', sessionUser.id)
+      .single();
+    if (fetchError) {
+      console.error('Supabase fetch client_id error:', fetchError.message);
+    } else {
+      clientId = userRow?.client_id || undefined;
+    }
+  }
+  if (clientId) {
+    // Guarda client_id en localStorage para consultas posteriores
+    localStorage.setItem('unicorn_client_id', clientId);
+  }
+
   localStorage.setItem('unicorn_user', JSON.stringify(user));
   return user;
 };
 
 /**
  * Registrar usuario con email y contraseña.
+ * Crea el client_id (igual al id del usuario) y lo guarda en metadata.
  */
 export const signUpWithEmail = async (
   email: string,
@@ -41,7 +64,7 @@ export const signUpWithEmail = async (
     password,
     options: {
       emailRedirectTo: `${window.location.origin}/login`,
-      data: { name: email.split('@')[0] }
+      data: { name: email.split('@')[0] } // metadata inicial (sin client_id todavía)
     }
   });
   if (error) {
@@ -59,6 +82,18 @@ export const signUpWithEmail = async (
     role: 'user',
     provider: newUser.app_metadata?.provider || ''
   };
+
+  try {
+    // Asigna al usuario un client_id igual a su id y actualiza el metadata
+    const clientId = newUser.id;
+    await supabase.auth.updateUser({
+      data: { client_id: clientId }
+    });
+    // Guarda el client_id en localStorage para el nuevo usuario
+    localStorage.setItem('unicorn_client_id', clientId);
+  } catch (updateError: any) {
+    console.error('Error updating user metadata with client_id:', updateError?.message || updateError);
+  }
 
   return user;
 };
@@ -89,6 +124,7 @@ export const signOut = async (): Promise<void> => {
     throw error;
   }
   localStorage.removeItem('unicorn_user');
+  localStorage.removeItem('unicorn_client_id');
 };
 
 /**
