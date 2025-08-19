@@ -51,10 +51,20 @@ const Conversations: React.FC = () => {
       setLoading(true);
       setError(null);
 
-     const { data, error: supabaseError } = await supabase
-  .from('conversations')
-  .select('id, lead_phone, last_message, agent_name, created_at, status, origen, procesar')
-  .order('created_at', { ascending: true }); // Sin filtro
+      // Filtrar por client_id
+      const clientId = typeof window !== 'undefined' ? localStorage.getItem('unicorn_client_id') : null;
+
+      let query = supabase
+        .from('conversations')
+        .select('id, lead_phone, last_message, agent_name, created_at, status, origen, procesar, client_id')
+        .order('created_at', { ascending: true });
+
+      if (clientId) {
+      // Si existe client_id, limitamos las conversaciones a las de ese cliente
+        query = query.eq('client_id', clientId);
+      }
+
+      const { data, error: supabaseError } = await query;
 
       if (supabaseError) throw supabaseError;
 
@@ -102,21 +112,25 @@ const Conversations: React.FC = () => {
     if (!selectedConversation || !newMessage.trim()) return;
 
     try {
-      // ✅ 3. Enviar también modoRespuesta al backend
-      const { error: sendError } = await supabase
-        .from('conversations')
-        .insert([
-          {
-            lead_phone: selectedConversation.leadId,
-            last_message: newMessage,
-            agent_name: 'bot',
-            created_at: new Date().toISOString(),
-            status: 'In Progress',
-            origen: 'unicorn',
-            procesar: false,
-            modo_respuesta: modoRespuesta  // 👈 Campo nuevo
-          }
-        ]);
+      // ✅ 3. Enviar también modoRespuesta y client_id al backend
+      const clientId = typeof window !== 'undefined' ? localStorage.getItem('unicorn_client_id') : null;
+
+      const insertRow: any = {
+        lead_phone: selectedConversation.leadId,
+        last_message: newMessage,
+        agent_name: 'bot',
+        created_at: new Date().toISOString(),
+        status: 'In Progress',
+        origen: 'unicorn',
+        procesar: false,
+        modo_respuesta: modoRespuesta,
+      };
+
+      if (clientId) {
+        insertRow.client_id = clientId;
+      }
+
+      const { error: sendError } = await supabase.from('conversations').insert([insertRow]);
 
       if (sendError) throw sendError;
 
@@ -130,12 +144,28 @@ const Conversations: React.FC = () => {
 
   const handleStatusChange = async (newStatus: string) => {
     if (!selectedConversation) return;
-    await supabase
-      .from('conversations')
-      .update({ status: newStatus })
-      .eq('id', selectedConversation.id);
-    setSelectedConversation((prev: any) => ({ ...prev, status: newStatus }));
-    await loadConversations();
+
+    const clientId = typeof window !== 'undefined' ? localStorage.getItem('unicorn_client_id') : null;
+
+    try {
+      let updateQuery = supabase
+        .from('conversations')
+        .update({ status: newStatus })
+        .eq('id', selectedConversation.id);
+
+      if (clientId) {
+        updateQuery = updateQuery.eq('client_id', clientId);
+      }
+
+      const { error: updateError } = await updateQuery;
+      if (updateError) throw updateError;
+
+      setSelectedConversation((prev: any) => ({ ...prev, status: newStatus }));
+      await loadConversations();
+    } catch (error) {
+      console.error('Error updating status:', error);
+      setError('No se pudo actualizar el estado');
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -317,7 +347,7 @@ const Conversations: React.FC = () => {
                       onChange={(e) => setNewMessage(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                     />
-                    
+
                     <IconButton
                       color="primary"
                       onClick={handleSendMessage}
