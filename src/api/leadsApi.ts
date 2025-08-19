@@ -1,19 +1,48 @@
 import axiosInstance from '../utils/axiosConfig';
 import axios from 'axios';
-import { Lead, CampaignData, Conversation, Message, ReportData } from '../interfaces/interfaces';
-import { 
-  getStoredLeads, storeLeads, addLead, updateStoredLead, deleteStoredLead,
-  getStoredCampaigns, storeCampaigns, addCampaign, updateStoredCampaign, deleteStoredCampaign,
-  getStoredConversations, storeConversations
+import {
+  Lead,
+  CampaignData,
+  Conversation,
+  Message,
+  ReportData
+} from '../interfaces/interfaces';
+import {
+  getStoredLeads,
+  storeLeads,
+  addLead,
+  updateStoredLead,
+  deleteStoredLead,
+  getStoredCampaigns,
+  storeCampaigns,
+  addCampaign,
+  updateStoredCampaign,
+  deleteStoredCampaign,
+  getStoredConversations,
+  storeConversations
 } from '../utils/storage';
 import supabase from '../utils/supabaseClient';
 
-const generateId = () => Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+const generateId = () =>
+  Math.random().toString(36).substring(2, 15) +
+  Math.random().toString(36).substring(2, 15);
 
 // LEADS
 export const fetchLeads = async () => {
   try {
-    const { data: leads, error } = await supabase.from('Leads').select('*');
+    // Obtener el client_id para filtrar
+    const clientId =
+      typeof window !== 'undefined'
+        ? localStorage.getItem('unicorn_client_id')
+        : null;
+
+    let query = supabase.from('Leads').select('*');
+    // Aplicar filtro por client_id si está definido
+    if (clientId) {
+      query = query.eq('client_id', clientId);
+    }
+
+    const { data: leads, error } = await query;
     if (error) throw error;
     if (leads && leads.length > 0) {
       const mappedLeads = leads.map((lead) => ({
@@ -22,17 +51,18 @@ export const fetchLeads = async () => {
         email: lead.website || '',
         phone: lead.phone || '',
         source: lead.source || '',
-        status: 'New',
-        priority: 'Medium',
+        status: lead.status || 'New',
+        priority: lead.priority || 'Medium',
         notes: lead.address || '',
         createdAt: lead.created_at,
         rating: lead.rating || 0,
         relevance: lead.relevance || 'Medium',
-        activar: lead.activar || false,
+        activar: lead.activar || false
       }));
       storeLeads(mappedLeads);
       return mappedLeads;
     }
+    // Si no hay leads en Supabase, usa los almacenados localmente
     const storedLeads = getStoredLeads();
     if (storedLeads.length > 0) return storedLeads;
 
@@ -42,15 +72,15 @@ export const fetchLeads = async () => {
   } catch (error) {
     console.error('Error fetching leads:', error);
     const demoLeads = [
-      { 
-        id: '1', 
-        name: 'Demo User', 
-        email: 'demo@example.com', 
-        phone: '555-0000', 
-        source: 'Demo', 
-        status: 'New', 
-        priority: 'Medium', 
-        createdAt: new Date().toISOString(), 
+      {
+        id: '1',
+        name: 'Demo User',
+        email: 'demo@example.com',
+        phone: '555-0000',
+        source: 'Demo',
+        status: 'New',
+        priority: 'Medium',
+        createdAt: new Date().toISOString(),
         notes: 'Demo lead',
         activar: false
       }
@@ -63,13 +93,13 @@ export const fetchLeads = async () => {
 export const createLead = async (leadData: Partial<Lead>) => {
   try {
     console.log('Creating lead with data:', leadData);
-    
+
     if (!leadData.name || !leadData.phone) {
       throw new Error('Name and phone are required');
     }
 
     // Preparar los datos para insertar en Supabase
-    const insertData = {
+    const insertData: any = {
       business_name: leadData.name,
       address: leadData.notes || '',
       phone: leadData.phone,
@@ -79,10 +109,18 @@ export const createLead = async (leadData: Partial<Lead>) => {
       source: leadData.source || 'Manual',
       created_at: new Date().toISOString(),
       activar: leadData.activar || false,
-      // Campos adicionales para status y priority si existen en la tabla
       status: leadData.status || 'New',
       priority: leadData.priority || 'Medium'
     };
+
+    // Añadir client_id si está disponible
+    const clientId =
+      typeof window !== 'undefined'
+        ? localStorage.getItem('unicorn_client_id')
+        : null;
+    if (clientId) {
+      insertData.client_id = clientId;
+    }
 
     console.log('Insert data prepared:', insertData);
 
@@ -101,7 +139,7 @@ export const createLead = async (leadData: Partial<Lead>) => {
     }
 
     console.log('Lead created successfully:', data[0]);
-    
+
     // Mapear de vuelta al formato de la interfaz Lead
     const mappedLead = {
       id: data[0].id,
@@ -127,9 +165,9 @@ export const createLead = async (leadData: Partial<Lead>) => {
 export const updateLead = async (id: string, leadData: Partial<Lead>) => {
   try {
     console.log('Updating lead:', id, leadData);
-    
+
     // Preparar los datos para actualizar en Supabase
-    const updateData = {
+    const updateData: any = {
       business_name: leadData.name,
       address: leadData.notes,
       phone: leadData.phone,
@@ -138,13 +176,12 @@ export const updateLead = async (id: string, leadData: Partial<Lead>) => {
       relevance: leadData.relevance,
       source: leadData.source,
       activar: leadData.activar,
-      // Campos adicionales para status y priority
       status: leadData.status,
       priority: leadData.priority
     };
 
     // Remover campos undefined
-    Object.keys(updateData).forEach(key => {
+    Object.keys(updateData).forEach((key) => {
       if (updateData[key] === undefined) {
         delete updateData[key];
       }
@@ -152,11 +189,18 @@ export const updateLead = async (id: string, leadData: Partial<Lead>) => {
 
     console.log('Update data prepared:', updateData);
 
-    const { data, error } = await supabase
-      .from('Leads')
-      .update(updateData)
-      .eq('id', id)
-      .select();
+    // Aplicar el filtro por client_id si existe
+    const clientId =
+      typeof window !== 'undefined'
+        ? localStorage.getItem('unicorn_client_id')
+        : null;
+
+    let updateQuery = supabase.from('Leads').update(updateData).eq('id', id);
+    if (clientId) {
+      updateQuery = updateQuery.eq('client_id', clientId);
+    }
+
+    const { data, error } = await updateQuery.select();
 
     if (error) {
       console.error('Supabase update error:', error);
@@ -168,10 +212,10 @@ export const updateLead = async (id: string, leadData: Partial<Lead>) => {
     }
 
     console.log('Lead updated successfully:', data[0]);
-    
+
     // Actualizar el storage local
     updateStoredLead(id, leadData);
-    
+
     return data[0];
   } catch (error) {
     console.error('Update lead error:', error);
@@ -181,13 +225,23 @@ export const updateLead = async (id: string, leadData: Partial<Lead>) => {
 
 export const activateLead = async (id: string) => {
   try {
-    const { error } = await supabase
+    const clientId =
+      typeof window !== 'undefined'
+        ? localStorage.getItem('unicorn_client_id')
+        : null;
+
+    let updateQuery = supabase
       .from('Leads')
       .update({ activar: true })
       .eq('id', id);
-    
+    if (clientId) {
+      updateQuery = updateQuery.eq('client_id', clientId);
+    }
+
+    const { error } = await updateQuery;
+
     if (error) throw error;
-    
+
     updateStoredLead(id, { activar: true });
     return true;
   } catch (error) {
@@ -198,7 +252,17 @@ export const activateLead = async (id: string) => {
 
 export const deleteLead = async (id: string) => {
   try {
-    const { error } = await supabase.from('Leads').delete().eq('id', id);
+    const clientId =
+      typeof window !== 'undefined'
+        ? localStorage.getItem('unicorn_client_id')
+        : null;
+
+    let deleteQuery = supabase.from('Leads').delete().eq('id', id);
+    if (clientId) {
+      deleteQuery = deleteQuery.eq('client_id', clientId);
+    }
+
+    const { error } = await deleteQuery;
     if (error) throw error;
     deleteStoredLead(id);
   } catch (error) {
@@ -210,7 +274,21 @@ export const deleteLead = async (id: string) => {
 // CAMPAIGNS
 export const fetchCampaigns = async () => {
   try {
-    const { data: campaigns, error } = await supabase.from('Campaigns').select('*').order('created_at', { ascending: false });
+    const clientId =
+      typeof window !== 'undefined'
+        ? localStorage.getItem('unicorn_client_id')
+        : null;
+
+    let query = supabase
+      .from('Campaigns')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (clientId) {
+      query = query.eq('client_id', clientId);
+    }
+
+    const { data: campaigns, error } = await query;
     if (error) throw error;
     storeCampaigns(campaigns || []);
     return campaigns || [];
@@ -223,13 +301,12 @@ export const fetchCampaigns = async () => {
 export const createCampaign = async (campaignData: Partial<CampaignData>) => {
   try {
     console.log('Creating campaign with data:', campaignData);
-    
+
     if (!campaignData.name || !campaignData.budget) {
       throw new Error('Name and budget are required');
     }
 
-    // Preparar los datos para insertar en Supabase
-    const insertData = {
+    const insertData: any = {
       name: campaignData.name,
       budget: Number(campaignData.budget),
       status: campaignData.status || 'Active',
@@ -238,6 +315,15 @@ export const createCampaign = async (campaignData: Partial<CampaignData>) => {
       target_audience: campaignData.targetAudience || null,
       created_at: new Date().toISOString()
     };
+
+    // Añadir client_id
+    const clientId =
+      typeof window !== 'undefined'
+        ? localStorage.getItem('unicorn_client_id')
+        : null;
+    if (clientId) {
+      insertData.client_id = clientId;
+    }
 
     console.log('Insert data prepared:', insertData);
 
@@ -256,10 +342,10 @@ export const createCampaign = async (campaignData: Partial<CampaignData>) => {
     }
 
     console.log('Campaign created successfully:', data[0]);
-    
+
     // Actualizar el storage local
     addCampaign(data[0]);
-    
+
     return data[0];
   } catch (error) {
     console.error('Error creating campaign:', error);
@@ -267,32 +353,47 @@ export const createCampaign = async (campaignData: Partial<CampaignData>) => {
   }
 };
 
-export const updateCampaign = async (id: string, campaignData: Partial<CampaignData>) => {
+export const updateCampaign = async (
+  id: string,
+  campaignData: Partial<CampaignData>
+) => {
   try {
     console.log('Updating campaign:', id, campaignData);
-    
-    // Preparar los datos para actualizar
-    const updateData = {
+
+    const updateData: any = {
       name: campaignData.name,
-      budget: campaignData.budget ? Number(campaignData.budget) : undefined,
+      budget: campaignData.budget
+        ? Number(campaignData.budget)
+        : undefined,
       status: campaignData.status,
-      clicks: campaignData.clicks ? Number(campaignData.clicks) : undefined,
+      clicks: campaignData.clicks
+        ? Number(campaignData.clicks)
+        : undefined,
       platform: campaignData.platform,
       target_audience: campaignData.targetAudience
     };
 
-    // Remover campos undefined
-    Object.keys(updateData).forEach(key => {
+    Object.keys(updateData).forEach((key) => {
       if (updateData[key] === undefined) {
         delete updateData[key];
       }
     });
 
-    const { data, error } = await supabase
+    const clientId =
+      typeof window !== 'undefined'
+        ? localStorage.getItem('unicorn_client_id')
+        : null;
+
+    let updateQuery = supabase
       .from('Campaigns')
       .update(updateData)
-      .eq('id', id)
-      .select();
+      .eq('id', id);
+
+    if (clientId) {
+      updateQuery = updateQuery.eq('client_id', clientId);
+    }
+
+    const { data, error } = await updateQuery.select();
 
     if (error) {
       console.error('Supabase update error:', error);
@@ -300,10 +401,10 @@ export const updateCampaign = async (id: string, campaignData: Partial<CampaignD
     }
 
     console.log('Campaign updated successfully:', data[0]);
-    
+
     // Actualizar el storage local
     updateStoredCampaign(id, campaignData);
-    
+
     return data[0];
   } catch (error) {
     console.error('Error updating campaign:', error);
@@ -313,7 +414,17 @@ export const updateCampaign = async (id: string, campaignData: Partial<CampaignD
 
 export const deleteCampaign = async (id: string) => {
   try {
-    const { error } = await supabase.from('Campaigns').delete().eq('id', id);
+    const clientId =
+      typeof window !== 'undefined'
+        ? localStorage.getItem('unicorn_client_id')
+        : null;
+
+    let deleteQuery = supabase.from('Campaigns').delete().eq('id', id);
+    if (clientId) {
+      deleteQuery = deleteQuery.eq('client_id', clientId);
+    }
+
+    const { error } = await deleteQuery;
     if (error) throw error;
     deleteStoredCampaign(id);
   } catch (error) {
@@ -325,17 +436,31 @@ export const deleteCampaign = async (id: string) => {
 // CONVERSATIONS
 export const fetchConversations = async () => {
   try {
-    const { data, error } = await supabase
+    const clientId =
+      typeof window !== 'undefined'
+        ? localStorage.getItem('unicorn_client_id')
+        : null;
+
+    let query = supabase
       .from('conversations')
-      .select(`
+      .select(
+        `
         *,
         lead:lead_id (
           business_name,
           phone,
           website
         )
-      `)
+      `
+      )
       .order('created_at', { ascending: false });
+
+    // Filtrar por client_id si lo añadiste a la tabla conversations
+    if (clientId) {
+      query = query.eq('client_id', clientId);
+    }
+
+    const { data, error } = await query;
 
     if (error) throw error;
 
@@ -347,28 +472,36 @@ export const fetchConversations = async () => {
       status: conv.status || 'New',
       lastMessage: conv.message || '',
       updatedAt: conv.created_at,
-      messages: [{
-        id: conv.id,
-        senderId: conv.sender,
-        content: conv.message,
-        timestamp: conv.created_at
-      }]
+      messages: [
+        {
+          id: conv.id,
+          senderId: conv.sender,
+          content: conv.message,
+          timestamp: conv.created_at
+        }
+      ]
     }));
 
     // Group messages by conversation
-    const groupedConversations = mappedConversations.reduce((acc: any, curr: any) => {
-      const existing = acc.find((c: any) => c.leadId === curr.leadId);
-      if (existing) {
-        existing.messages.push(...curr.messages);
-        if (new Date(curr.updatedAt) > new Date(existing.updatedAt)) {
-          existing.lastMessage = curr.lastMessage;
-          existing.updatedAt = curr.updatedAt;
+    const groupedConversations = mappedConversations.reduce(
+      (acc: any, curr: any) => {
+        const existing = acc.find((c: any) => c.leadId === curr.leadId);
+        if (existing) {
+          existing.messages.push(...curr.messages);
+          if (
+            new Date(curr.updatedAt) >
+            new Date(existing.updatedAt)
+          ) {
+            existing.lastMessage = curr.lastMessage;
+            existing.updatedAt = curr.updatedAt;
+          }
+        } else {
+          acc.push(curr);
         }
-      } else {
-        acc.push(curr);
-      }
-      return acc;
-    }, []);
+        return acc;
+      },
+      []
+    );
 
     storeConversations(groupedConversations);
     return groupedConversations;
@@ -397,17 +530,32 @@ export const subscribeToConversations = (callback: (payload: any) => void) => {
   };
 };
 
-export const sendMessage = async (conversationId: string, message: Partial<Message>) => {
+export const sendMessage = async (
+  conversationId: string,
+  message: Partial<Message>
+) => {
   try {
-    const { data, error } = await supabase.from('conversations').insert([
-      {
-        lead_id: conversationId,
-        message: message.content,
-        sender: message.senderId || 'bot',
-        created_at: new Date().toISOString(),
-      }
-    ]).select();
-    
+    const clientId =
+      typeof window !== 'undefined'
+        ? localStorage.getItem('unicorn_client_id')
+        : null;
+
+    const insertRow: any = {
+      lead_id: conversationId,
+      message: message.content,
+      sender: message.senderId || 'bot',
+      created_at: new Date().toISOString()
+    };
+
+    if (clientId) {
+      insertRow.client_id = clientId;
+    }
+
+    const { data, error } = await supabase
+      .from('conversations')
+      .insert([insertRow])
+      .select();
+
     if (error) throw error;
     return data[0];
   } catch (error) {
@@ -431,9 +579,13 @@ export const exportReportToCsv = (reportData: any) => {
 };
 
 // NUEVA FUNCIÓN AGREGADA
-const makeWebhookURL = 'https://hook.us2.make.com/qn218ny6kp3xhlb1ca52mmgp5ld6o4ig';
+const makeWebhookURL =
+  'https://hook.us2.make.com/qn218ny6kp3xhlb1ca52mmgp5ld6o4ig';
 
-export const sendLeadRequestToMake = async (data: { business_type: string; location: string }) => {
+export const sendLeadRequestToMake = async (data: {
+  business_type: string;
+  location: string;
+}) => {
   try {
     const response = await axios.post(makeWebhookURL, data);
     return response.data;
@@ -444,8 +596,12 @@ export const sendLeadRequestToMake = async (data: { business_type: string; locat
 };
 
 // NUEVA URL (por ejemplo para YP/Apify)
-const MAKE_WEBHOOK_URL_YP = 'https://hook.us2.make.com/cvd583e1n9yhle4p1ljlot34ajnger7d';
-export const sendLeadRequestToMakeYP = async (data: { business_type: string; location: string }) => {
+const MAKE_WEBHOOK_URL_YP =
+  'https://hook.us2.make.com/cvd583e1n9yhle4p1ljlot34ajnger7d';
+export const sendLeadRequestToMakeYP = async (data: {
+  business_type: string;
+  location: string;
+}) => {
   try {
     const response = await axios.post(MAKE_WEBHOOK_URL_YP, data);
     return response.data;
