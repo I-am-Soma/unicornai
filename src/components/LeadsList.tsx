@@ -32,7 +32,6 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Search as SearchIcon,
-  FileDownload as FileDownloadIcon,
   PictureAsPdf as PdfIcon,
   TableChart as CsvIcon,
   Send as SendIcon,
@@ -46,6 +45,10 @@ import { exportLeadsToCSV } from '../utils/csvExport';
 import axios from 'axios';
 import supabase from '../utils/supabaseClient';
 
+// --- Si true, delegamos inserciones a Make (webhook) y evitamos insertar localmente para no duplicar ---
+const USE_MAKE_FOR_IMPORTS = true;
+
+// 👉 Webhooks de Make (escenarios separados para cada fuente)
 const GOOGLE_MAPS_WEBHOOK = 'https://hook.us2.make.com/qn218ny6kp3xhlb1ca52mmgp5ld6o4ig';
 const YELLOW_PAGES_WEBHOOK = 'https://hook.us2.make.com/wkkedv0x6sgwp1ofl8pav3oasrr5pf1z';
 
@@ -76,11 +79,10 @@ const LeadsList: React.FC = () => {
   const [openDrawer, setOpenDrawer] = useState(false);
   const [selectedLeadDetails, setSelectedLeadDetails] = useState<Lead | null>(null);
 
-  // --- Helpers para IDs de autenticación (robusto) ---
+  // --- Helpers robustos para IDs de autenticación ---
   const getAuthIds = () => {
     const client_id = localStorage.getItem('unicorn_client_id') || undefined;
     let user_id = localStorage.getItem('unicorn_user_id') || undefined;
-
     if (!user_id) {
       try {
         const u = JSON.parse(localStorage.getItem('unicorn_user') || 'null');
@@ -112,14 +114,14 @@ const LeadsList: React.FC = () => {
       setRefreshing(true);
       await loadLeads();
       setSuccess('Leads refreshed successfully');
-    } catch (err) {
+    } catch {
       setError('Failed to refresh leads');
     } finally {
       setRefreshing(false);
     }
   };
 
-  // Buscar e importar leads (Google Maps / Yellow Pages) con client_id y user_id
+  // Buscar e importar leads (Google Maps / Yellow Pages) enviando client_id y user_id al WEBHOOK
   const handleSearch = async () => {
     if (!businessType && !location) {
       setError('Please enter business type or location');
@@ -134,67 +136,36 @@ const LeadsList: React.FC = () => {
 
     try {
       setLoading(true);
-      let responses: any[] = [];
 
+      // Payload que Make recibirá (tu escenario puede consumirlo directo)
       const searchPayload = {
         business_type: businessType,
-        location: location,
-        maxItems: 20
+        location,
+        maxItems: 20,
+        client_id, // <- multiusuario
+        user_id,   // <- multiusuario
       };
 
+      const calls: Promise<any>[] = [];
       if (selectedSource === 'all' || selectedSource === 'Google Maps') {
-        try {
-          const googleResponse = await axios.post(GOOGLE_MAPS_WEBHOOK, searchPayload);
-          if (googleResponse.data && googleResponse.data.results) {
-            responses = [
-              ...responses,
-              ...googleResponse.data.results.map((result: any) => ({
-                ...result,
-                source: 'Google Maps'
-              }))
-            ];
-          }
-        } catch (error) {
-          console.error('Error with Google Maps webhook:', error);
-        }
+        calls.push(axios.post(GOOGLE_MAPS_WEBHOOK, searchPayload));
       }
-
       if (selectedSource === 'all' || selectedSource === 'Yellow Pages') {
-        try {
-          const ypResponse = await axios.post(YELLOW_PAGES_WEBHOOK, searchPayload);
-          if (ypResponse.data && ypResponse.data.results) {
-            responses = [
-              ...responses,
-              ...ypResponse.data.results.map((result: any) => ({
-                ...result,
-                source: 'Yellow Pages'
-              }))
-            ];
-          }
-        } catch (error) {
-          console.error('Error with Yellow Pages webhook:', error);
-        }
+        calls.push(axios.post(YELLOW_PAGES_WEBHOOK, searchPayload));
       }
 
-      // Insertar cada lead importado con client_id y user_id
-      for (const lead of responses) {
-        await createLead({
-          name: lead.name || lead.business_name || '',
-          email: lead.email || lead.website || '',
-          phone: lead.phone || '',
-          source: lead.source,
-          status: 'New',
-          priority: 'Medium',
-          notes: `Found via ${lead.source} search: ${businessType} in ${location}`,
-          client_id,   // <- multiusuario
-          user_id      // <- multiusuario
-        } as any); // (as any) por si tu tipo Lead no trae aún estos campos
-      }
+      await Promise.allSettled(calls);
 
-      await loadLeads();
-      setSuccess(`Successfully imported ${responses.length} leads`);
-    } catch (error) {
-      console.error('Error searching leads:', error);
+      // Si Make inserta, aquí solo refrescamos tabla tras un breve delay para que termine el escenario
+      if (USE_MAKE_FOR_IMPORTS) {
+        setSuccess('Import requested. We’ll refresh the list shortly.');
+        setTimeout(() => loadLeads(), 2500);
+      } else {
+        // ⚠️ RUTA ALTERNATIVA: si quisieras insertar localmente (no recomendado si Make ya inserta)
+        // aquí podrías consumir resultados y llamar createLead(...) con client_id/user_id.
+      }
+    } catch (err) {
+      console.error('Error searching leads:', err);
       setError('Failed to search and import leads');
     } finally {
       setLoading(false);
@@ -231,16 +202,8 @@ const LeadsList: React.FC = () => {
 
       for (const leadId of selectedLeads) {
         const lead = leads.find(l => String(l.id) === String(leadId));
-        if (!lead) {
-          errorCount++;
-          errorDetails.push(`Lead ${leadId} not found`);
-          continue;
-        }
-        if (!lead.phone) {
-          errorCount++;
-          errorDetails.push(`Lead ${lead.name} has no phone`);
-          continue;
-        }
+        if (!lead) { errorCount++; errorDetails.push(`Lead ${leadId} not found`); continue; }
+        if (!lead.phone) { errorCount++; errorDetails.push(`Lead ${lead.name} has no phone`); continue; }
 
         const normalizedPhone = normalizePhone(lead.phone);
         const whatsappFormattedPhone = `whatsapp:${normalizedPhone}`;
@@ -254,27 +217,13 @@ const LeadsList: React.FC = () => {
           origen: 'unicorn',
           procesar: false,
           client_id, // <- multiusuario
-          user_id    // <- multiusuario
+          user_id,   // <- multiusuario
         };
 
         try {
-          const { data, error } = await supabase
-            .from('conversations')
-            .insert([conversationData])
-            .select();
-
-          if (error) {
-            errorCount++;
-            errorDetails.push(`${lead.name}: ${error.message}`);
-            continue;
-          }
-
-          if (!data || data.length === 0) {
-            errorCount++;
-            errorDetails.push(`${lead.name}: No data returned from insert`);
-            continue;
-          }
-
+          const { data, error } = await supabase.from('conversations').insert([conversationData]).select();
+          if (error) { errorCount++; errorDetails.push(`${lead.name}: ${error.message}`); continue; }
+          if (!data || data.length === 0) { errorCount++; errorDetails.push(`${lead.name}: No data returned from insert`); continue; }
           successCount++;
         } catch (insertError) {
           errorCount++;
@@ -283,29 +232,20 @@ const LeadsList: React.FC = () => {
       }
 
       setSelectedLeads([]);
-
-      if (successCount > 0) {
-        setSuccess(`Successfully activated ${successCount} leads${errorCount > 0 ? ` (${errorCount} failed)` : ''}`);
-      }
-      if (errorCount > 0) {
-        console.error('Activation errors:', errorDetails);
-        setError(`Failed to activate ${errorCount} leads. Check console for details.`);
-      }
-    } catch (error) {
-      console.error('Error activating leads:', error);
-      setError(`Failed to activate leads: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      if (successCount > 0) setSuccess(`Successfully activated ${successCount} leads${errorCount > 0 ? ` (${errorCount} failed)` : ''}`);
+      if (errorCount > 0) { console.error('Activation errors:', errorDetails); setError(`Failed to activate ${errorCount} leads. Check console for details.`); }
+    } catch (err) {
+      console.error('Error activating leads:', err);
+      setError(`Failed to activate leads: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
   };
 
+  // Dialog open/close
   const handleOpenDialog = (lead: Lead | null = null) => {
     if (lead) {
-      setFormData({
-        ...lead,
-        status: lead.status || 'New',
-        priority: lead.priority || 'Medium',
-      });
+      setFormData({ ...lead, status: lead.status || 'New', priority: lead.priority || 'Medium' });
     } else {
       setFormData({
         name: '',
@@ -319,15 +259,11 @@ const LeadsList: React.FC = () => {
     }
     setOpenDialog(true);
   };
-
-  const handleCloseDialog = () => {
-    setOpenDialog(false);
-    setError(null);
-  };
+  const handleCloseDialog = () => { setOpenDialog(false); setError(null); };
 
   // Crear/Actualizar lead (manual) con client_id y user_id
   const handleSubmit = async () => {
-    if (!formData.name) { setError('Name is required.'); return; }
+    if (!formData.name)  { setError('Name is required.');  return; }
     if (!formData.email) { setError('Email is required.'); return; }
     if (!formData.phone) { setError('Phone is required.'); return; }
 
@@ -338,7 +274,7 @@ const LeadsList: React.FC = () => {
     }
 
     try {
-      const payload = {
+      const payload: any = {
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
@@ -348,22 +284,15 @@ const LeadsList: React.FC = () => {
         notes: formData.notes || '',
         created_at: new Date().toISOString(),
         client_id, // <- multiusuario
-        user_id    // <- multiusuario
+        user_id,   // <- multiusuario
       };
 
       if (formData.id) {
-        const { error } = await supabase
-          .from('Leads')
-          .update(payload)
-          .eq('id', formData.id);
-
+        const { error } = await supabase.from('Leads').update(payload).eq('id', formData.id);
         if (error) throw error;
         setSuccess('Lead updated successfully');
       } else {
-        const { error } = await supabase
-          .from('Leads')
-          .insert([payload]);
-
+        const { error } = await supabase.from('Leads').insert([payload]);
         if (error) throw error;
         setSuccess('Lead created successfully');
       }
@@ -376,6 +305,7 @@ const LeadsList: React.FC = () => {
     }
   };
 
+  // Delete
   const handleDeleteLead = async (id: string) => {
     try {
       await deleteLead(id);
@@ -391,38 +321,22 @@ const LeadsList: React.FC = () => {
     }
   };
 
+  // Exports
   const handleExportPDF = () => {
-    try {
-      exportLeadsToPDF(filteredLeads, 'leads-export.pdf');
-      setSuccess('Leads exported to PDF successfully');
-    } catch {
-      setError('Failed to export PDF');
-    }
+    try { exportLeadsToPDF(filteredLeads, 'leads-export.pdf'); setSuccess('Leads exported to PDF successfully'); }
+    catch { setError('Failed to export PDF'); }
   };
-
   const handleExportCSV = () => {
-    try {
-      exportLeadsToCSV(filteredLeads, 'leads-export.csv');
-      setSuccess('Leads exported to CSV successfully');
-    } catch {
-      setError('Failed to export CSV');
-    }
+    try { exportLeadsToCSV(filteredLeads, 'leads-export.csv'); setSuccess('Leads exported to CSV successfully'); }
+    catch { setError('Failed to export CSV'); }
   };
 
-  const handleViewDetails = (lead: Lead) => {
-    setSelectedLeadDetails(lead);
-    setOpenDrawer(true);
-  };
-
-  const handleCloseDrawer = () => {
-    setOpenDrawer(false);
-    setSelectedLeadDetails(null);
-  };
-
+  // UI helpers
+  const handleViewDetails = (lead: Lead) => { setSelectedLeadDetails(lead); setOpenDrawer(true); };
+  const handleCloseDrawer = () => { setOpenDrawer(false); setSelectedLeadDetails(null); };
   const handleSendMessage = (phoneNumber: string) => {
     const cleanedForWhatsappUrl = phoneNumber.replace('whatsapp:', '').replace('+', '');
-    const whatsappUrl = `https://wa.me/${cleanedForWhatsappUrl}`;
-    window.open(whatsappUrl, '_blank');
+    window.open(`https://wa.me/${cleanedForWhatsappUrl}`, '_blank');
   };
 
   const getStatusChipProps = (status: string) => {
@@ -450,6 +364,7 @@ const LeadsList: React.FC = () => {
     return { color, emoji };
   };
 
+  // Filtros
   const filteredLeads = leads.filter(lead => {
     const matchesSearch =
       lead.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -463,24 +378,20 @@ const LeadsList: React.FC = () => {
     return matchesSearch && matchesStatus && matchesPriority && matchesSource;
   });
 
+  // Selecciones
   const handleLeadCheckboxChange = (leadId: string) => {
-    setSelectedLeads(prevSelected =>
-      prevSelected.includes(leadId)
-        ? prevSelected.filter(id => id !== leadId)
-        : [...prevSelected, leadId]
+    setSelectedLeads(prev =>
+      prev.includes(leadId) ? prev.filter(id => id !== leadId) : [...prev, leadId]
     );
   };
-
-  const handleSelectAllLeads = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.checked) {
-      setSelectedLeads(filteredLeads.map(lead => String(lead.id)));
-    } else {
-      setSelectedLeads([]);
-    }
+  const handleSelectAllLeads = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) setSelectedLeads(filteredLeads.map(lead => String(lead.id)));
+    else setSelectedLeads([]);
   };
 
   return (
     <Box sx={{ p: 3, fontFamily: 'Inter, sans-serif' }}>
+      {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
         <Typography variant="h5" sx={{ fontWeight: 600 }}>Lead Management</Typography>
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
@@ -499,6 +410,7 @@ const LeadsList: React.FC = () => {
         </Box>
       </Box>
 
+      {/* Search & Import */}
       <Paper elevation={3} sx={{ p: 3, mb: 3, borderRadius: '12px' }}>
         <Typography variant="h6" gutterBottom sx={{ fontWeight: 500, mb: 2 }}>Search & Import Leads</Typography>
         <Grid container spacing={2}>
@@ -516,6 +428,7 @@ const LeadsList: React.FC = () => {
         </Grid>
       </Paper>
 
+      {/* Filters & bulk actions */}
       <Paper elevation={3} sx={{ p: 3, mb: 3, borderRadius: '12px' }}>
         <Grid container spacing={2} alignItems="center">
           <Grid item xs={12} md={3}>
@@ -574,6 +487,7 @@ const LeadsList: React.FC = () => {
           </Grid>
         </Grid>
 
+        {/* Cards */}
         <Box sx={{ mt: 3, display: 'flex', flexWrap: 'wrap', gap: 2, justifyContent: 'center' }}>
           {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', p: 4, width: '100%' }}>
@@ -667,6 +581,7 @@ const LeadsList: React.FC = () => {
         )}
       </Paper>
 
+      {/* Dialog New/Edit */}
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 600 }}>{formData.id ? 'Edit Lead' : 'New Lead'}</DialogTitle>
         <DialogContent>
@@ -724,6 +639,7 @@ const LeadsList: React.FC = () => {
         </DialogActions>
       </Dialog>
 
+      {/* Drawer Details */}
       <Drawer
         anchor="right"
         open={openDrawer}
@@ -801,10 +717,7 @@ const LeadsList: React.FC = () => {
               <Button
                 variant="outlined"
                 startIcon={<EditIcon />}
-                onClick={() => {
-                  handleOpenDialog(selectedLeadDetails);
-                  handleCloseDrawer();
-                }}
+                onClick={() => { handleOpenDialog(selectedLeadDetails); handleCloseDrawer(); }}
                 sx={{ borderRadius: '8px' }}
               >
                 Edit Lead
@@ -823,23 +736,14 @@ const LeadsList: React.FC = () => {
         )}
       </Drawer>
 
-      <Snackbar
-        open={!!error}
-        autoHideDuration={6000}
-        onClose={() => setError(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
+      {/* Snackbars */}
+      <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
         <Alert severity="error" onClose={() => setError(null)} sx={{ width: '100%', borderRadius: '8px' }}>
           {error}
         </Alert>
       </Snackbar>
 
-      <Snackbar
-        open={!!success}
-        autoHideDuration={6000}
-        onClose={() => setSuccess(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
+      <Snackbar open={!!success} autoHideDuration={6000} onClose={() => setSuccess(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
         <Alert severity="success" onClose={() => setSuccess(null)} sx={{ width: '100%', borderRadius: '8px' }}>
           {success}
         </Alert>
