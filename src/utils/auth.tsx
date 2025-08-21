@@ -6,50 +6,66 @@ import type { User } from '../context/AuthContext';
  * Al autenticarse, también lee el client_id del user_metadata
  * o lo recupera desde la tabla `users` y lo almacena en localStorage.
  */
-export const signInWithEmail = async (
+export const signUpWithEmail = async (
   email: string,
   password: string
 ): Promise<User> => {
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: `${window.location.origin}/login`,
+      data: {
+        name: email.split('@')[0]
+      }
+    }
+  });
+
   if (error) {
-    console.error('Supabase login error:', error.message);
+    console.error('Supabase signup error:', error.message);
     throw error;
   }
-  if (!data.user) throw new Error('No user data returned');
 
-  const sessionUser = data.user;
-  const user: User = {
-    id: sessionUser.id,
-    email: sessionUser.email || '',
-    name: sessionUser.user_metadata?.name || '',
-    avatar: sessionUser.user_metadata?.avatar_url || '',
-    role: 'user',
-    provider: sessionUser.app_metadata?.provider || ''
-  };
+  if (!data.user) throw new Error('No user created');
 
-  // Recuperar client_id desde el user_metadata o la tabla users
-  let clientId = sessionUser.user_metadata?.client_id;
-  if (!clientId) {
-    // Si no está en metadata, obtén el client_id desde la tabla users
-    const { data: userRow, error: fetchError } = await supabase
-      .from('users')
-      .select('client_id')
-      .eq('id', sessionUser.id)
-      .single();
-    if (fetchError) {
-      console.error('Supabase fetch client_id error:', fetchError.message);
-    } else {
-      clientId = userRow?.client_id || undefined;
-    }
+  const newUser = data.user;
+
+  // Espera 1 segundo a que se ejecute el trigger que inserta en la tabla `users`
+  await new Promise(resolve => setTimeout(resolve, 1000));
+
+  // Buscar client_id en la tabla users (debe haberse creado por trigger)
+  const { data: userRow, error: fetchError } = await supabase
+    .from('users')
+    .select('client_id')
+    .eq('id', newUser.id)
+    .single();
+
+  if (fetchError) {
+    console.error('Error al obtener client_id desde users:', fetchError.message);
   }
+
+  const clientId = userRow?.client_id;
+
+  // Guardar client_id en localStorage si existe
   if (clientId) {
-    // Guarda client_id en localStorage para consultas posteriores
     localStorage.setItem('unicorn_client_id', clientId);
   }
 
+  // Guardar datos del usuario en localStorage
+  const user: User = {
+    id: newUser.id,
+    email: newUser.email || '',
+    name: newUser.user_metadata?.name || '',
+    avatar: newUser.user_metadata?.avatar_url || '',
+    role: 'user',
+    provider: newUser.app_metadata?.provider || ''
+  };
+
   localStorage.setItem('unicorn_user', JSON.stringify(user));
+
   return user;
 };
+
 
 /**
  * Registrar usuario con email y contraseña.
