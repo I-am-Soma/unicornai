@@ -20,11 +20,11 @@ import {
   Tooltip,
   CircularProgress,
   Checkbox,
-  Card, // New import for card view
-  CardContent, // New import for card view
-  CardActions, // New import for card view
-  Drawer, // New import for lateral drawer
-  Chip, // New import for status/priority chips
+  Card,
+  CardContent,
+  CardActions,
+  Drawer,
+  Chip,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -36,8 +36,8 @@ import {
   PictureAsPdf as PdfIcon,
   TableChart as CsvIcon,
   Send as SendIcon,
-  Visibility as VisibilityIcon, // New icon for 'View Details'
-  Close as CloseIcon, // New icon for closing drawer
+  Visibility as VisibilityIcon,
+  Close as CloseIcon,
 } from '@mui/icons-material';
 import { fetchLeads, createLead, updateLead, deleteLead } from '../api/leadsApi';
 import { Lead } from '../interfaces/interfaces';
@@ -62,7 +62,7 @@ const LeadsList: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [selectedSource, setSelectedSource] = useState<string>('all');
-  const [pageSize, setPageSize] = useState<number>(10); // Used for number of cards displayed
+  const [pageSize, setPageSize] = useState<number>(10);
   const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
   const [formData, setFormData] = useState<Partial<Lead>>({
     name: '',
@@ -73,16 +73,27 @@ const LeadsList: React.FC = () => {
     priority: 'Medium',
     notes: '',
   });
-  const [openDrawer, setOpenDrawer] = useState(false); // State for controlling the drawer
-  const [selectedLeadDetails, setSelectedLeadDetails] = useState<Lead | null>(null); // State for lead details in drawer
+  const [openDrawer, setOpenDrawer] = useState(false);
+  const [selectedLeadDetails, setSelectedLeadDetails] = useState<Lead | null>(null);
+
+  // --- Helpers para IDs de autenticación (robusto) ---
+  const getAuthIds = () => {
+    const client_id = localStorage.getItem('unicorn_client_id') || undefined;
+    let user_id = localStorage.getItem('unicorn_user_id') || undefined;
+
+    if (!user_id) {
+      try {
+        const u = JSON.parse(localStorage.getItem('unicorn_user') || 'null');
+        if (u?.id) user_id = u.id;
+      } catch {}
+    }
+    return { client_id, user_id };
+  };
 
   useEffect(() => {
     loadLeads();
   }, []);
 
-  /**
-   * Loads leads from the API.
-   */
   const loadLeads = async () => {
     try {
       setLoading(true);
@@ -96,9 +107,6 @@ const LeadsList: React.FC = () => {
     }
   };
 
-  /**
-   * Handles refreshing the leads list.
-   */
   const handleRefresh = async () => {
     try {
       setRefreshing(true);
@@ -111,12 +119,16 @@ const LeadsList: React.FC = () => {
     }
   };
 
-  /**
-   * Handles searching and importing leads from external APIs (Google Maps, Yellow Pages).
-   */
+  // Buscar e importar leads (Google Maps / Yellow Pages) con client_id y user_id
   const handleSearch = async () => {
     if (!businessType && !location) {
       setError('Please enter business type or location');
+      return;
+    }
+
+    const { client_id, user_id } = getAuthIds();
+    if (!client_id || !user_id) {
+      setError('Auth context missing. Please sign in again.');
       return;
     }
 
@@ -134,10 +146,13 @@ const LeadsList: React.FC = () => {
         try {
           const googleResponse = await axios.post(GOOGLE_MAPS_WEBHOOK, searchPayload);
           if (googleResponse.data && googleResponse.data.results) {
-            responses = [...responses, ...googleResponse.data.results.map((result: any) => ({
-              ...result,
-              source: 'Google Maps'
-            }))];
+            responses = [
+              ...responses,
+              ...googleResponse.data.results.map((result: any) => ({
+                ...result,
+                source: 'Google Maps'
+              }))
+            ];
           }
         } catch (error) {
           console.error('Error with Google Maps webhook:', error);
@@ -148,16 +163,20 @@ const LeadsList: React.FC = () => {
         try {
           const ypResponse = await axios.post(YELLOW_PAGES_WEBHOOK, searchPayload);
           if (ypResponse.data && ypResponse.data.results) {
-            responses = [...responses, ...ypResponse.data.results.map((result: any) => ({
-              ...result,
-              source: 'Yellow Pages'
-            }))];
+            responses = [
+              ...responses,
+              ...ypResponse.data.results.map((result: any) => ({
+                ...result,
+                source: 'Yellow Pages'
+              }))
+            ];
           }
         } catch (error) {
           console.error('Error with Yellow Pages webhook:', error);
         }
       }
 
+      // Insertar cada lead importado con client_id y user_id
       for (const lead of responses) {
         await createLead({
           name: lead.name || lead.business_name || '',
@@ -167,7 +186,9 @@ const LeadsList: React.FC = () => {
           status: 'New',
           priority: 'Medium',
           notes: `Found via ${lead.source} search: ${businessType} in ${location}`,
-        });
+          client_id,   // <- multiusuario
+          user_id      // <- multiusuario
+        } as any); // (as any) por si tu tipo Lead no trae aún estos campos
       }
 
       await loadLeads();
@@ -180,38 +201,25 @@ const LeadsList: React.FC = () => {
     }
   };
 
-  /**
-   * Normalizes a phone number to an international format (e.g., +1XXXXXXXXXX, +52XXXXXXXXXX).
-   * It cleans non-digits and attempts to prepend country codes if missing,
-   * but respects existing international formats.
-   * @param rawPhone The raw phone number string.
-   * @returns The normalized phone number.
-   */
+  // Normaliza teléfonos
   const normalizePhone = (rawPhone: string): string => {
-    const cleanedDigits = rawPhone.replace(/\D/g, ''); // Remove all non-digit characters
-
-    // If the rawPhone already starts with '+' and the cleanedDigits are of a typical international length (10-15 digits),
-    // assume it's already correctly formatted internationally.
+    const cleanedDigits = rawPhone.replace(/\D/g, '');
     if (rawPhone.startsWith('+') && cleanedDigits.length >= 10 && cleanedDigits.length <= 15) {
-      return rawPhone; // Respect the existing international format
+      return rawPhone;
     }
-
-    // Otherwise, prepend '+' to the cleaned digits. This is a generic internationalization.
-    // It will result in formats like "+6562628157" if input is "6562628157"
-    // or "+1234567890" if input is "123-456-7890"
-    // This logic avoids assuming a fixed country code like +52 for 10-digit numbers.
     return `+${cleanedDigits}`;
   };
 
-  /**
-   * Activates selected leads by inserting them into the 'conversations' table in Supabase.
-   * Normalizes phone numbers to 'whatsapp:{normalizedPhone}' format.
-   */
+  // Activar leads seleccionados → inserta en conversations con client_id y user_id
   const handleActivateSelected = async () => {
-    console.log('🚀 Iniciando activación de leads:', selectedLeads);
-
     if (selectedLeads.length === 0) {
       setError('No leads selected');
+      return;
+    }
+
+    const { client_id, user_id } = getAuthIds();
+    if (!client_id || !user_id) {
+      setError('Auth context missing. Please sign in again.');
       return;
     }
 
@@ -220,115 +228,81 @@ const LeadsList: React.FC = () => {
       let successCount = 0;
       let errorCount = 0;
       const errorDetails: string[] = [];
-      // Removed firstWhatsappUrlOpened = false; as we no longer open WhatsApp automatically
-
-      console.log('📋 Leads disponibles:', leads.map(l => ({ id: l.id, name: l.name, phone: l.phone })));
 
       for (const leadId of selectedLeads) {
-        console.log(`🔍 Procesando lead ID: ${leadId} (tipo: ${typeof leadId})`);
-
         const lead = leads.find(l => String(l.id) === String(leadId));
-
         if (!lead) {
-          console.error(`❌ Lead no encontrado: ${leadId}`);
           errorCount++;
           errorDetails.push(`Lead ${leadId} not found`);
           continue;
         }
-
         if (!lead.phone) {
-          console.error(`❌ Lead sin teléfono: ${lead.name} (${leadId})`);
           errorCount++;
           errorDetails.push(`Lead ${lead.name} has no phone`);
           continue;
         }
 
         const normalizedPhone = normalizePhone(lead.phone);
-        // Prepend "whatsapp:" to the normalized phone number as required by Twilio for WhatsApp
         const whatsappFormattedPhone = `whatsapp:${normalizedPhone}`;
-        console.log(`✅ Lead encontrado: ${lead.name}, teléfono normalizado: ${normalizedPhone}, formato WhatsApp para Twilio: ${whatsappFormattedPhone}`);
 
         const conversationData = {
-  lead_phone: whatsappFormattedPhone,
-  // ⚠️ No escribir mensaje inicial aquí, será generado dinámicamente por la IA (generarHistorialGPT)
-  last_message: "",
-  agent_name: "Unicorn AI",
-  status: "New",
-  created_at: new Date().toISOString(),
-  origen: "unicorn",
-  procesar: false
-};
-
-        console.log('📤 Insertando en conversations:', conversationData);
+          lead_phone: whatsappFormattedPhone,
+          last_message: '',
+          agent_name: 'Unicorn AI',
+          status: 'New',
+          created_at: new Date().toISOString(),
+          origen: 'unicorn',
+          procesar: false,
+          client_id, // <- multiusuario
+          user_id    // <- multiusuario
+        };
 
         try {
           const { data, error } = await supabase
             .from('conversations')
             .insert([conversationData])
-            .select(); // Selects the inserted data
+            .select();
 
           if (error) {
-            console.error(`❌ Error de Supabase para lead ${leadId}:`, error);
             errorCount++;
             errorDetails.push(`${lead.name}: ${error.message}`);
             continue;
           }
 
           if (!data || data.length === 0) {
-            console.error(`❌ No se insertaron datos para lead ${leadId}`);
             errorCount++;
             errorDetails.push(`${lead.name}: No data returned from insert`);
             continue;
           }
 
-          console.log(`✅ Conversación creada exitosamente para ${lead.name}:`, data[0]);
           successCount++;
-
-          // Removed the line that opens WhatsApp automatically
-          // if (!firstWhatsappUrlOpened) {
-          //   const whatsappUrl = `https://wa.me/${normalizedPhone.replace('+', '')}`;
-          //   window.open(whatsappUrl, '_blank');
-          //   firstWhatsappUrlOpened = true;
-          // }
-
         } catch (insertError) {
-          console.error(`❌ Excepción al insertar lead ${leadId}:`, insertError);
           errorCount++;
           errorDetails.push(`${lead.name}: ${insertError instanceof Error ? insertError.message : 'Unknown error'}`);
         }
       }
 
-      setSelectedLeads([]); // Clear selection after activation
+      setSelectedLeads([]);
 
       if (successCount > 0) {
         setSuccess(`Successfully activated ${successCount} leads${errorCount > 0 ? ` (${errorCount} failed)` : ''}`);
       }
-
       if (errorCount > 0) {
-        console.error('❌ Errores detallados:', errorDetails);
+        console.error('Activation errors:', errorDetails);
         setError(`Failed to activate ${errorCount} leads. Check console for details.`);
       }
-
-      console.log(`📊 Resumen: ${successCount} exitosos, ${errorCount} fallidos`);
-
     } catch (error) {
-      console.error('❌ Error general activando leads:', error);
+      console.error('Error activating leads:', error);
       setError(`Failed to activate leads: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
   };
 
-  /**
-   * Opens the lead creation/edit dialog.
-   * When editing, it precargues the lead's data including status and priority.
-   * @param lead The lead object to edit, or null for a new lead.
-   */
   const handleOpenDialog = (lead: Lead | null = null) => {
     if (lead) {
       setFormData({
         ...lead,
-        // Ensure status and priority are set from the lead object, with fallbacks
         status: lead.status || 'New',
         priority: lead.priority || 'Medium',
       });
@@ -337,39 +311,29 @@ const LeadsList: React.FC = () => {
         name: '',
         email: '',
         phone: '',
-        source: selectedSource === 'all' ? 'Google Maps' : selectedSource, // Default source
-        status: 'New', // Default status for new leads
-        priority: 'Medium', // Default priority for new leads
+        source: selectedSource === 'all' ? 'Google Maps' : selectedSource,
+        status: 'New',
+        priority: 'Medium',
         notes: '',
       });
     }
     setOpenDialog(true);
   };
 
-  /**
-   * Closes the lead creation/edit dialog.
-   */
   const handleCloseDialog = () => {
     setOpenDialog(false);
-    setError(null); // Clear any previous errors
+    setError(null);
   };
 
-  /**
-   * Handles submitting the lead form (create or update).
-   * Includes validation for required fields.
-   */
+  // Crear/Actualizar lead (manual) con client_id y user_id
   const handleSubmit = async () => {
-    // Validation for required fields
-    if (!formData.name) {
-      setError('Name is required.');
-      return;
-    }
-    if (!formData.email) {
-      setError('Email is required.');
-      return;
-    }
-    if (!formData.phone) {
-      setError('Phone is required.');
+    if (!formData.name) { setError('Name is required.'); return; }
+    if (!formData.email) { setError('Email is required.'); return; }
+    if (!formData.phone) { setError('Phone is required.'); return; }
+
+    const { client_id, user_id } = getAuthIds();
+    if (!client_id || !user_id) {
+      setError('Auth context missing. Please sign in again.');
       return;
     }
 
@@ -378,57 +342,45 @@ const LeadsList: React.FC = () => {
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
-        source: formData.source || 'Manual', // Ensure a default if somehow not selected
-        status: formData.status || 'New', // Ensure a default if somehow not selected
-        priority: formData.priority || 'Medium', // Ensure a default if somehow not selected
+        source: formData.source || 'Manual',
+        status: formData.status || 'New',
+        priority: formData.priority || 'Medium',
         notes: formData.notes || '',
         created_at: new Date().toISOString(),
+        client_id, // <- multiusuario
+        user_id    // <- multiusuario
       };
 
       if (formData.id) {
-        // Update existing lead
         const { error } = await supabase
           .from('Leads')
           .update(payload)
           .eq('id', formData.id);
 
         if (error) throw error;
-
         setSuccess('Lead updated successfully');
       } else {
-        // Create new lead
         const { error } = await supabase
           .from('Leads')
           .insert([payload]);
 
         if (error) throw error;
-
         setSuccess('Lead created successfully');
       }
 
-      handleCloseDialog(); // Close dialog on success
-      await loadLeads(); // Reload leads to reflect changes
+      handleCloseDialog();
+      await loadLeads();
     } catch (err) {
-      console.error('❌ Error saving lead:', err);
+      console.error('Error saving lead:', err);
       setError('Failed to save lead');
     }
   };
 
-  /**
-   * Handles deleting a lead.
-   * @param id The ID of the lead to delete.
-   */
   const handleDeleteLead = async (id: string) => {
-    // In a real application, you would replace this with a custom confirmation dialog
-    // For now, proceeding with deletion for demonstration purposes.
-    // As per instructions, avoiding window.confirm directly.
-    console.log('Attempting to delete lead with ID:', id);
-
     try {
       await deleteLead(id);
       setSuccess('Lead deleted successfully');
       await loadLeads();
-      // Close drawer if the deleted lead was being viewed
       if (selectedLeadDetails && selectedLeadDetails.id === id) {
         setOpenDrawer(false);
         setSelectedLeadDetails(null);
@@ -439,121 +391,65 @@ const LeadsList: React.FC = () => {
     }
   };
 
-  /**
-   * Exports filtered leads to a PDF document.
-   */
   const handleExportPDF = () => {
     try {
       exportLeadsToPDF(filteredLeads, 'leads-export.pdf');
       setSuccess('Leads exported to PDF successfully');
-    } catch (error) {
+    } catch {
       setError('Failed to export PDF');
     }
   };
 
-  /**
-   * Exports filtered leads to a CSV file.
-   */
   const handleExportCSV = () => {
     try {
       exportLeadsToCSV(filteredLeads, 'leads-export.csv');
       setSuccess('Leads exported to CSV successfully');
-    } catch (error) {
+    } catch {
       setError('Failed to export CSV');
     }
   };
 
-  /**
-   * Opens the lateral drawer to display full details of a selected lead.
-   * @param lead The lead object to display.
-   */
   const handleViewDetails = (lead: Lead) => {
     setSelectedLeadDetails(lead);
     setOpenDrawer(true);
   };
 
-  /**
-   * Closes the lateral drawer.
-   */
   const handleCloseDrawer = () => {
     setOpenDrawer(false);
     setSelectedLeadDetails(null);
   };
 
-  /**
-   * Opens WhatsApp chat with the given phone number.
-   * @param phoneNumber The phone number to send a message to.
-   */
   const handleSendMessage = (phoneNumber: string) => {
-    // Ensure the number is clean for the WhatsApp URL (no "whatsapp:" prefix, no leading "+")
     const cleanedForWhatsappUrl = phoneNumber.replace('whatsapp:', '').replace('+', '');
     const whatsappUrl = `https://wa.me/${cleanedForWhatsappUrl}`;
     window.open(whatsappUrl, '_blank');
   };
 
-  /**
-   * Returns Material UI Chip props (color and emoji) based on lead status.
-   * @param status The status string.
-   * @returns An object with `color` and `emoji` properties.
-   */
   const getStatusChipProps = (status: string) => {
     let color: "default" | "primary" | "secondary" | "error" | "info" | "success" | "warning";
     let emoji: string;
     switch (status) {
-      case 'New':
-        color = 'primary';
-        emoji = '✨'; // Sparkles emoji
-        break;
-      case 'Contacted':
-        color = 'success';
-        emoji = '📞'; // Phone emoji
-        break;
-      case 'Pending':
-        color = 'warning';
-        emoji = '⏳'; // Hourglass emoji
-        break;
-      case 'Closed':
-        color = 'default';
-        emoji = '🔒'; // Lock emoji
-        break;
-      default:
-        color = 'default';
-        emoji = '';
+      case 'New': color = 'primary'; emoji = '✨'; break;
+      case 'Contacted': color = 'success'; emoji = '📞'; break;
+      case 'Pending': color = 'warning'; emoji = '⏳'; break;
+      case 'Closed': color = 'default'; emoji = '🔒'; break;
+      default: color = 'default'; emoji = '';
     }
     return { color, emoji };
   };
 
-  /**
-   * Returns Material UI Chip props (color and emoji) based on lead priority.
-   * @param priority The priority string.
-   * @returns An object with `color` and `emoji` properties.
-   */
   const getPriorityChipProps = (priority: string) => {
     let color: "default" | "primary" | "secondary" | "error" | "info" | "success" | "warning";
     let emoji: string;
     switch (priority) {
-      case 'High':
-        color = 'error';
-        emoji = '🚨'; // Siren emoji
-        break;
-      case 'Medium':
-        color = 'warning';
-        emoji = '⚠️'; // Warning emoji
-        break;
-      case 'Low':
-        color = 'success';
-        emoji = '✅'; // Checkmark emoji
-        break;
-      default:
-        color = 'default';
-        emoji = '';
+      case 'High': color = 'error'; emoji = '🚨'; break;
+      case 'Medium': color = 'warning'; emoji = '⚠️'; break;
+      case 'Low': color = 'success'; emoji = '✅'; break;
+      default: color = 'default'; emoji = '';
     }
     return { color, emoji };
   };
 
-  /**
-   * Filters the leads based on search term, status, priority, and source.
-   */
   const filteredLeads = leads.filter(lead => {
     const matchesSearch =
       lead.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -567,10 +463,6 @@ const LeadsList: React.FC = () => {
     return matchesSearch && matchesStatus && matchesPriority && matchesSource;
   });
 
-  /**
-   * Handles individual lead checkbox changes for multi-selection.
-   * @param leadId The ID of the lead whose checkbox was changed.
-   */
   const handleLeadCheckboxChange = (leadId: string) => {
     setSelectedLeads(prevSelected =>
       prevSelected.includes(leadId)
@@ -579,10 +471,6 @@ const LeadsList: React.FC = () => {
     );
   };
 
-  /**
-   * Handles the "Select All" checkbox for leads.
-   * @param event The change event from the checkbox.
-   */
   const handleSelectAllLeads = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.checked) {
       setSelectedLeads(filteredLeads.map(lead => String(lead.id)));
@@ -593,110 +481,50 @@ const LeadsList: React.FC = () => {
 
   return (
     <Box sx={{ p: 3, fontFamily: 'Inter, sans-serif' }}>
-      {/* Header and Global Actions */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
         <Typography variant="h5" sx={{ fontWeight: 600 }}>Lead Management</Typography>
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-          <Button
-            variant="outlined"
-            startIcon={<PdfIcon />}
-            onClick={handleExportPDF}
-            sx={{ borderRadius: '8px' }}
-          >
+          <Button variant="outlined" startIcon={<PdfIcon />} onClick={handleExportPDF} sx={{ borderRadius: '8px' }}>
             Export PDF
           </Button>
-          <Button
-            variant="outlined"
-            startIcon={<CsvIcon />}
-            onClick={handleExportCSV}
-            sx={{ borderRadius: '8px' }}
-          >
+          <Button variant="outlined" startIcon={<CsvIcon />} onClick={handleExportCSV} sx={{ borderRadius: '8px' }}>
             Export CSV
           </Button>
-          <Button
-            variant="outlined"
-            startIcon={<RefreshIcon />}
-            onClick={handleRefresh}
-            disabled={refreshing}
-            sx={{ borderRadius: '8px' }}
-          >
+          <Button variant="outlined" startIcon={<RefreshIcon />} onClick={handleRefresh} disabled={refreshing} sx={{ borderRadius: '8px' }}>
             {refreshing ? 'Refreshing...' : 'Refresh'}
           </Button>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => handleOpenDialog()}
-            sx={{ borderRadius: '8px' }}
-          >
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenDialog()} sx={{ borderRadius: '8px' }}>
             New Lead
           </Button>
         </Box>
       </Box>
 
-      {/* Search & Import Leads Section */}
       <Paper elevation={3} sx={{ p: 3, mb: 3, borderRadius: '12px' }}>
         <Typography variant="h6" gutterBottom sx={{ fontWeight: 500, mb: 2 }}>Search & Import Leads</Typography>
         <Grid container spacing={2}>
           <Grid item xs={12} md={4}>
-            <TextField
-              fullWidth
-              label="Business Type"
-              value={businessType}
-              onChange={(e) => setBusinessType(e.target.value)}
-              variant="outlined"
-              size="medium"
-              sx={{ borderRadius: '8px' }}
-            />
+            <TextField fullWidth label="Business Type" value={businessType} onChange={(e) => setBusinessType(e.target.value)} variant="outlined" size="medium" sx={{ borderRadius: '8px' }} />
           </Grid>
           <Grid item xs={12} md={4}>
-            <TextField
-              fullWidth
-              label="Location"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              variant="outlined"
-              size="medium"
-              sx={{ borderRadius: '8px' }}
-            />
+            <TextField fullWidth label="Location" value={location} onChange={(e) => setLocation(e.target.value)} variant="outlined" size="medium" sx={{ borderRadius: '8px' }} />
           </Grid>
           <Grid item xs={12} md={4}>
-            <Button
-              fullWidth
-              variant="contained"
-              onClick={handleSearch}
-              disabled={loading}
-              startIcon={loading ? <CircularProgress size={20} /> : <SearchIcon />}
-              sx={{ height: '56px', borderRadius: '8px', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}
-            >
+            <Button fullWidth variant="contained" onClick={handleSearch} disabled={loading} startIcon={loading ? <CircularProgress size={20} /> : <SearchIcon />} sx={{ height: '56px', borderRadius: '8px', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
               Search & Import
             </Button>
           </Grid>
         </Grid>
       </Paper>
 
-      {/* Leads List Filters and Actions */}
       <Paper elevation={3} sx={{ p: 3, mb: 3, borderRadius: '12px' }}>
         <Grid container spacing={2} alignItems="center">
           <Grid item xs={12} md={3}>
-            <TextField
-              fullWidth
-              size="small"
-              label="Filter Leads (Name, Phone, Email)"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              variant="outlined"
-              sx={{ borderRadius: '8px' }}
-            />
+            <TextField fullWidth size="small" label="Filter Leads (Name, Phone, Email)" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} variant="outlined" sx={{ borderRadius: '8px' }} />
           </Grid>
           <Grid item xs={12} md={2}>
             <FormControl fullWidth size="small">
               <InputLabel>Status</InputLabel>
-              <Select
-                value={statusFilter}
-                label="Status"
-                onChange={(e) => setStatusFilter(e.target.value)}
-                sx={{ borderRadius: '8px' }}
-              >
+              <Select value={statusFilter} label="Status" onChange={(e) => setStatusFilter(e.target.value)} sx={{ borderRadius: '8px' }}>
                 <MenuItem value="all">All Status</MenuItem>
                 <MenuItem value="New">New</MenuItem>
                 <MenuItem value="Contacted">Contacted</MenuItem>
@@ -708,12 +536,7 @@ const LeadsList: React.FC = () => {
           <Grid item xs={12} md={2}>
             <FormControl fullWidth size="small">
               <InputLabel>Priority</InputLabel>
-              <Select
-                value={priorityFilter}
-                label="Priority"
-                onChange={(e) => setPriorityFilter(e.target.value)}
-                sx={{ borderRadius: '8px' }}
-              >
+              <Select value={priorityFilter} label="Priority" onChange={(e) => setPriorityFilter(e.target.value)} sx={{ borderRadius: '8px' }}>
                 <MenuItem value="all">All Priority</MenuItem>
                 <MenuItem value="High">High</MenuItem>
                 <MenuItem value="Medium">Medium</MenuItem>
@@ -724,12 +547,7 @@ const LeadsList: React.FC = () => {
           <Grid item xs={12} md={2}>
             <FormControl fullWidth size="small">
               <InputLabel>Source</InputLabel>
-              <Select
-                value={selectedSource}
-                label="Source"
-                onChange={(e) => setSelectedSource(e.target.value)}
-                sx={{ borderRadius: '8px' }}
-              >
+              <Select value={selectedSource} label="Source" onChange={(e) => setSelectedSource(e.target.value)} sx={{ borderRadius: '8px' }}>
                 <MenuItem value="all">All Sources</MenuItem>
                 <MenuItem value="Google Maps">Google Maps</MenuItem>
                 <MenuItem value="Yellow Pages">Yellow Pages</MenuItem>
@@ -756,7 +574,6 @@ const LeadsList: React.FC = () => {
           </Grid>
         </Grid>
 
-        {/* Lead Cards Display */}
         <Box sx={{ mt: 3, display: 'flex', flexWrap: 'wrap', gap: 2, justifyContent: 'center' }}>
           {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', p: 4, width: '100%' }}>
@@ -776,7 +593,7 @@ const LeadsList: React.FC = () => {
                 <Card
                   key={lead.id}
                   sx={{
-                    width: { xs: '100%', sm: 300, md: 320 }, // Responsive width
+                    width: { xs: '100%', sm: 300, md: 320 },
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',
@@ -784,9 +601,7 @@ const LeadsList: React.FC = () => {
                     borderRadius: '12px',
                     p: 1,
                     transition: 'transform 0.2s ease-in-out',
-                    '&:hover': {
-                      transform: 'translateY(-5px)',
-                    },
+                    '&:hover': { transform: 'translateY(-5px)' },
                   }}
                 >
                   <CardContent sx={{ flexGrow: 1 }}>
@@ -815,12 +630,7 @@ const LeadsList: React.FC = () => {
                     </Box>
                   </CardContent>
                   <CardActions sx={{ justifyContent: 'space-between', pt: 0 }}>
-                    <Button
-                      size="small"
-                      onClick={() => handleViewDetails(lead)}
-                      startIcon={<VisibilityIcon />}
-                      sx={{ textTransform: 'none', borderRadius: '8px' }}
-                    >
+                    <Button size="small" onClick={() => handleViewDetails(lead)} startIcon={<VisibilityIcon />} sx={{ textTransform: 'none', borderRadius: '8px' }}>
                       View Details
                     </Button>
                     <Box>
@@ -841,17 +651,12 @@ const LeadsList: React.FC = () => {
             })
           )}
         </Box>
-        {/* Pagination for cards */}
+
         {filteredLeads.length > pageSize && (
           <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
             <FormControl size="small">
               <InputLabel>Results Per Page</InputLabel>
-              <Select
-                value={pageSize}
-                label="Results Per Page"
-                onChange={(e) => setPageSize(Number(e.target.value))}
-                sx={{ borderRadius: '8px' }}
-              >
+              <Select value={pageSize} label="Results Per Page" onChange={(e) => setPageSize(Number(e.target.value))} sx={{ borderRadius: '8px' }}>
                 <MenuItem value={10}>10 per page</MenuItem>
                 <MenuItem value={20}>20 per page</MenuItem>
                 <MenuItem value={50}>50 per page</MenuItem>
@@ -862,53 +667,23 @@ const LeadsList: React.FC = () => {
         )}
       </Paper>
 
-      {/* New/Edit Lead Dialog */}
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 600 }}>{formData.id ? 'Edit Lead' : 'New Lead'}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12}>
-              <TextField
-                label="Name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                fullWidth
-                required
-                variant="outlined"
-                sx={{ borderRadius: '8px' }}
-              />
+              <TextField label="Name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} fullWidth required variant="outlined" sx={{ borderRadius: '8px' }} />
             </Grid>
             <Grid item xs={12}>
-              <TextField
-                label="Email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                fullWidth
-                required
-                type="email"
-                variant="outlined"
-                sx={{ borderRadius: '8px' }}
-              />
+              <TextField label="Email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} fullWidth required type="email" variant="outlined" sx={{ borderRadius: '8px' }} />
             </Grid>
             <Grid item xs={12}>
-              <TextField
-                label="Phone"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                fullWidth
-                required
-                variant="outlined"
-                sx={{ borderRadius: '8px' }}
-              />
+              <TextField label="Phone" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} fullWidth required variant="outlined" sx={{ borderRadius: '8px' }} />
             </Grid>
             <Grid item xs={12}>
               <FormControl fullWidth variant="outlined" sx={{ borderRadius: '8px' }}>
                 <InputLabel>Source</InputLabel>
-                <Select
-                  value={formData.source}
-                  label="Source"
-                  onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-                >
+                <Select value={formData.source} label="Source" onChange={(e) => setFormData({ ...formData, source: e.target.value })}>
                   <MenuItem value="Google Maps">Google Maps</MenuItem>
                   <MenuItem value="Yellow Pages">Yellow Pages</MenuItem>
                   <MenuItem value="Manual">Manual</MenuItem>
@@ -918,11 +693,7 @@ const LeadsList: React.FC = () => {
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth variant="outlined" sx={{ borderRadius: '8px' }}>
                 <InputLabel>Status</InputLabel>
-                <Select
-                  value={formData.status}
-                  label="Status"
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                >
+                <Select value={formData.status} label="Status" onChange={(e) => setFormData({ ...formData, status: e.target.value })}>
                   <MenuItem value="New">New</MenuItem>
                   <MenuItem value="Contacted">Contacted</MenuItem>
                   <MenuItem value="Pending">Pending</MenuItem>
@@ -933,11 +704,7 @@ const LeadsList: React.FC = () => {
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth variant="outlined" sx={{ borderRadius: '8px' }}>
                 <InputLabel>Priority</InputLabel>
-                <Select
-                  value={formData.priority}
-                  label="Priority"
-                  onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                >
+                <Select value={formData.priority} label="Priority" onChange={(e) => setFormData({ ...formData, priority: e.target.value })}>
                   <MenuItem value="High">High</MenuItem>
                   <MenuItem value="Medium">Medium</MenuItem>
                   <MenuItem value="Low">Low</MenuItem>
@@ -945,16 +712,7 @@ const LeadsList: React.FC = () => {
               </FormControl>
             </Grid>
             <Grid item xs={12}>
-              <TextField
-                label="Notes"
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                fullWidth
-                multiline
-                rows={3}
-                variant="outlined"
-                sx={{ borderRadius: '8px' }}
-              />
+              <TextField label="Notes" value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} fullWidth multiline rows={3} variant="outlined" sx={{ borderRadius: '8px' }} />
             </Grid>
           </Grid>
         </DialogContent>
@@ -966,16 +724,15 @@ const LeadsList: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Lead Details Drawer */}
       <Drawer
         anchor="right"
         open={openDrawer}
         onClose={handleCloseDrawer}
         PaperProps={{
           sx: {
-            width: { xs: '100%', sm: 400 }, // Responsive width for the drawer
+            width: { xs: '100%', sm: 400 },
             p: 3,
-            borderRadius: '12px 0 0 12px', // Rounded corners on the left side
+            borderRadius: '12px 0 0 12px',
             boxShadow: '0 0 15px rgba(0,0,0,0.2)',
           },
         }}
@@ -1066,7 +823,6 @@ const LeadsList: React.FC = () => {
         )}
       </Drawer>
 
-      {/* Snackbar for error messages */}
       <Snackbar
         open={!!error}
         autoHideDuration={6000}
@@ -1078,7 +834,6 @@ const LeadsList: React.FC = () => {
         </Alert>
       </Snackbar>
 
-      {/* Snackbar for success messages */}
       <Snackbar
         open={!!success}
         autoHideDuration={6000}
