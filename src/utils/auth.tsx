@@ -50,6 +50,7 @@ export const signUpWithEmail = async (
   if (clientId) {
     localStorage.setItem('unicorn_client_id', clientId);
   }
+  localStorage.setItem('unicorn_user_id', newUser.id); // 🔥 NUEVO
 
   // Guardar datos del usuario en localStorage
   const user: User = {
