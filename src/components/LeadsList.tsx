@@ -81,7 +81,7 @@ const LeadsList: React.FC = () => {
 
   // --- Helpers robustos para IDs de autenticación ---
   const getAuthIds = () => {
-    const client_id_raw = localStorage.getItem('unicorn_client_id');
+    const client_id = localStorage.getItem('unicorn_client_id') || undefined;
     let user_id = localStorage.getItem('unicorn_user_id') || undefined;
     if (!user_id) {
       try {
@@ -91,17 +91,10 @@ const LeadsList: React.FC = () => {
     }
 
     // 🔍 DEBUG: Ver qué tenemos en localStorage
-    console.log('🔍 DEBUG client_id_raw:', client_id_raw, typeof client_id_raw);
+    console.log('🔍 DEBUG client_id (UUID):', client_id, typeof client_id);
     console.log('🔍 DEBUG user_id:', user_id, typeof user_id);
 
-    // Convertir client_id a integer si es necesario
-    let client_id: number | undefined;
-    if (client_id_raw) {
-      const parsed = parseInt(client_id_raw, 10);
-      client_id = isNaN(parsed) ? undefined : parsed;
-      console.log('🔍 DEBUG client_id convertido:', client_id, typeof client_id);
-    }
-
+    // NO convertir client_id - mantener como UUID string
     return { client_id, user_id };
   };
 
