@@ -113,7 +113,7 @@ const Conversations: React.FC = () => {
 
     try {
       // ✅ 3. Enviar también modoRespuesta y client_id al backend
-      const clientId = typeof window !== 'undefined' ? localStorage.getItem('unicorn_client_id') : null;
+      const clientId = typeof window !== 'undefined' ? parseInt(localStorage.getItem('unicorn_client_id') || '', 10) : null;
 
       const insertRow: any = {
         lead_phone: selectedConversation.leadId,
