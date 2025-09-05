@@ -34,7 +34,6 @@ const Conversations: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // ✅ 1. Estado para controlar el modo
   const [modoRespuesta, setModoRespuesta] = useState<'text' | 'audio'>('text');
 
   useEffect(() => {
@@ -51,8 +50,15 @@ const Conversations: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      // Filtrar por client_id
-      const clientId = typeof window !== 'undefined' ? localStorage.getItem('unicorn_client_id') : null;
+      // Filtrar por client_id - Convertir a integer
+      const clientId_raw = typeof window !== 'undefined' ? localStorage.getItem('unicorn_client_id') : null;
+      let clientId: number | null = null;
+      if (clientId_raw) {
+        const parsed = parseInt(clientId_raw, 10);
+        clientId = isNaN(parsed) ? null : parsed;
+      }
+
+      console.log('🔍 DEBUG clientId en conversations loadConversations:', clientId, typeof clientId);
 
       let query = supabase
         .from('conversations')
@@ -60,13 +66,16 @@ const Conversations: React.FC = () => {
         .order('created_at', { ascending: true });
 
       if (clientId) {
-      // Si existe client_id, limitamos las conversaciones a las de ese cliente
+        // Si existe client_id, limitamos las conversaciones a las de ese cliente
         query = query.eq('client_id', clientId);
       }
 
       const { data, error: supabaseError } = await query;
 
-      if (supabaseError) throw supabaseError;
+      if (supabaseError) {
+        console.error('🔍 DEBUG Supabase error en loadConversations:', supabaseError);
+        throw supabaseError;
+      }
 
       if (!data) {
         setConversations([]);
@@ -112,8 +121,15 @@ const Conversations: React.FC = () => {
     if (!selectedConversation || !newMessage.trim()) return;
 
     try {
-      // ✅ 3. Enviar también modoRespuesta y client_id al backend
-      const clientId = typeof window !== 'undefined' ? localStorage.getItem('unicorn_client_id') : null;
+      // Convertir client_id a integer
+      const clientId_raw = typeof window !== 'undefined' ? localStorage.getItem('unicorn_client_id') : null;
+      let clientId: number | null = null;
+      if (clientId_raw) {
+        const parsed = parseInt(clientId_raw, 10);
+        clientId = isNaN(parsed) ? null : parsed;
+      }
+
+      console.log('🔍 DEBUG clientId para mensaje:', clientId, typeof clientId);
 
       const insertRow: any = {
         lead_phone: selectedConversation.leadId,
@@ -130,9 +146,14 @@ const Conversations: React.FC = () => {
         insertRow.client_id = clientId;
       }
 
+      console.log('🔍 DEBUG insertRow para mensaje:', insertRow);
+
       const { error: sendError } = await supabase.from('conversations').insert([insertRow]);
 
-      if (sendError) throw sendError;
+      if (sendError) {
+        console.error('🔍 DEBUG Send error:', sendError);
+        throw sendError;
+      }
 
       setNewMessage('');
       await loadConversations();
@@ -145,7 +166,15 @@ const Conversations: React.FC = () => {
   const handleStatusChange = async (newStatus: string) => {
     if (!selectedConversation) return;
 
-    const clientId = typeof window !== 'undefined' ? localStorage.getItem('unicorn_client_id') : null;
+    // Convertir client_id a integer
+    const clientId_raw = typeof window !== 'undefined' ? localStorage.getItem('unicorn_client_id') : null;
+    let clientId: number | null = null;
+    if (clientId_raw) {
+      const parsed = parseInt(clientId_raw, 10);
+      clientId = isNaN(parsed) ? null : parsed;
+    }
+
+    console.log('🔍 DEBUG clientId para status change:', clientId, typeof clientId);
 
     try {
       let updateQuery = supabase
@@ -158,7 +187,10 @@ const Conversations: React.FC = () => {
       }
 
       const { error: updateError } = await updateQuery;
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('🔍 DEBUG Update status error:', updateError);
+        throw updateError;
+      }
 
       setSelectedConversation((prev: any) => ({ ...prev, status: newStatus }));
       await loadConversations();
@@ -326,7 +358,6 @@ const Conversations: React.FC = () => {
                   ))}
                 </Box>
                 <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
-                  {/* ✅ 2. Selector visual sobre el campo de mensaje */}
                   <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                     <FormControl size="small" sx={{ minWidth: 120 }}>
                       <InputLabel>Modo</InputLabel>
