@@ -122,78 +122,124 @@ const LeadsList: React.FC = () => {
   };
 
   // Buscar e importar leads (Google Maps / Yellow Pages) enviando client_id y user_id al WEBHOOK
-  const handleSearch = async () => {
-    if (!businessType && !location) {
-      setError('Please enter business type or location');
-      return;
+const handleSearch = async () => {
+  if (!businessType && !location) {
+    setError('Please enter business type or location');
+    return;
+  }
+
+  let { client_id, user_id } = getAuthIds();
+
+  // ✅ Convertir correctamente client_id a integer
+  if (typeof client_id === 'string') {
+    const parsed = parseInt(client_id, 10);
+    client_id = isNaN(parsed) ? undefined : parsed;
+  }
+
+  if (!client_id || !user_id) {
+    setError('Auth context missing. Please sign in again.');
+    return;
+  }
+
+  try {
+    setLoading(true);
+
+    const searchPayload = {
+      business_type: businessType,
+      location,
+      maxItems: 20,
+      client_id,
+      user_id,
+    };
+
+    const calls: Promise<any>[] = [];
+    if (selectedSource === 'all' || selectedSource === 'Google Maps') {
+      calls.push(axios.post(GOOGLE_MAPS_WEBHOOK, searchPayload));
+    }
+    if (selectedSource === 'all' || selectedSource === 'Yellow Pages') {
+      calls.push(axios.post(YELLOW_PAGES_WEBHOOK, searchPayload));
     }
 
-    let { client_id, user_id } = getAuthIds();
+    await Promise.allSettled(calls);
 
-// ✅ CORREGIR: convertir client_id a integer si viene como string
-if (typeof client_id === 'string') {
-  const parsed = parseInt(client_id, 10);
-  client_id = isNaN(parsed) ? undefined : parsed;
-}
-
-let { client_id, user_id } = getAuthIds();
-
-// ✅ Convertir client_id a integer
-if (typeof client_id === 'string') {
-  const parsed = parseInt(client_id, 10);
-  client_id = isNaN(parsed) ? undefined : parsed;
-}
-
-if (!client_id || !user_id) {
-  setError('Auth context missing. Please sign in again.');
-  return;
-}
-
-}
-
-
-    if (!client_id || !user_id) {
-      setError('Auth context missing. Please sign in again.');
-      return;
+    if (USE_MAKE_FOR_IMPORTS) {
+      setSuccess('Import requested. We’ll refresh the list shortly.');
+      setTimeout(() => loadLeads(), 2500);
     }
+  } catch (err) {
+    console.error('Error searching leads:', err);
+    setError('Failed to search and import leads');
+  } finally {
+    setLoading(false);
+  }
+};
 
-    try {
-      setLoading(true);
+const handleActivateSelected = async () => {
+  if (selectedLeads.length === 0) {
+    setError('No leads selected');
+    return;
+  }
 
-      // Payload que Make recibirá (tu escenario puede consumirlo directo)
-      const searchPayload = {
-        business_type: businessType,
-        location,
-        maxItems: 20,
-        client_id, // <- multiusuario
-        user_id,   // <- multiusuario
+  let { client_id, user_id } = getAuthIds();
+
+  // ✅ Convertir correctamente client_id a integer
+  if (typeof client_id === 'string') {
+    const parsed = parseInt(client_id, 10);
+    client_id = isNaN(parsed) ? undefined : parsed;
+  }
+
+  if (!client_id || !user_id) {
+    setError('Auth context missing. Please sign in again.');
+    return;
+  }
+
+  try {
+    setLoading(true);
+    let successCount = 0;
+    let errorCount = 0;
+    const errorDetails: string[] = [];
+
+    for (const leadId of selectedLeads) {
+      const lead = leads.find(l => String(l.id) === String(leadId));
+      if (!lead) { errorCount++; errorDetails.push(`Lead ${leadId} not found`); continue; }
+      if (!lead.phone) { errorCount++; errorDetails.push(`Lead ${lead.name} has no phone`); continue; }
+
+      const normalizedPhone = normalizePhone(lead.phone);
+      const whatsappFormattedPhone = `whatsapp:${normalizedPhone}`;
+
+      const conversationData = {
+        lead_phone: whatsappFormattedPhone,
+        last_message: '',
+        agent_name: 'Unicorn AI',
+        status: 'New',
+        created_at: new Date().toISOString(),
+        origen: 'unicorn',
+        procesar: false,
+        client_id,
+        user_id,
       };
 
-      const calls: Promise<any>[] = [];
-      if (selectedSource === 'all' || selectedSource === 'Google Maps') {
-        calls.push(axios.post(GOOGLE_MAPS_WEBHOOK, searchPayload));
+      try {
+        const { data, error } = await supabase.from('conversations').insert([conversationData]).select();
+        if (error) { errorCount++; errorDetails.push(`${lead.name}: ${error.message}`); continue; }
+        if (!data || data.length === 0) { errorCount++; errorDetails.push(`${lead.name}: No data returned from insert`); continue; }
+        successCount++;
+      } catch (insertError) {
+        errorCount++;
+        errorDetails.push(`${lead.name}: ${insertError instanceof Error ? insertError.message : 'Unknown error'}`);
       }
-      if (selectedSource === 'all' || selectedSource === 'Yellow Pages') {
-        calls.push(axios.post(YELLOW_PAGES_WEBHOOK, searchPayload));
-      }
-
-      await Promise.allSettled(calls);
-
-      // Si Make inserta, aquí solo refrescamos tabla tras un breve delay para que termine el escenario
-      if (USE_MAKE_FOR_IMPORTS) {
-        setSuccess('Import requested. We’ll refresh the list shortly.');
-        setTimeout(() => loadLeads(), 2500);
-      } else {
-        // ⚠️ RUTA ALTERNATIVA: si quisieras insertar localmente (no recomendado si Make ya inserta)
-        // aquí podrías consumir resultados y llamar createLead(...) con client_id/user_id.
-      }
-    } catch (err) {
-      console.error('Error searching leads:', err);
-      setError('Failed to search and import leads');
-    } finally {
-      setLoading(false);
     }
-  };
+
+    setSelectedLeads([]);
+    if (successCount > 0) setSuccess(`Successfully activated ${successCount} leads${errorCount > 0 ? ` (${errorCount} failed)` : ''}`);
+    if (errorCount > 0) { console.error('Activation errors:', errorDetails); setError(`Failed to activate ${errorCount} leads. Check console for details.`); }
+  } catch (err) {
+    console.error('Error activating leads:', err);
+    setError(`Failed to activate leads: ${err instanceof Error ? err.message : 'Unknown error'}`);
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Normaliza teléfonos
   const normalizePhone = (rawPhone: string): string => {
