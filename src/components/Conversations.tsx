@@ -50,15 +50,10 @@ const Conversations: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      // Filtrar por client_id - Convertir a integer
-      const clientId_raw = typeof window !== 'undefined' ? localStorage.getItem('unicorn_client_id') : null;
-      let clientId: number | null = null;
-      if (clientId_raw) {
-        const parsed = parseInt(clientId_raw, 10);
-        clientId = isNaN(parsed) ? null : parsed;
-      }
+      // Obtener client_id como UUID string (NO convertir a integer)
+      const clientId = typeof window !== 'undefined' ? localStorage.getItem('unicorn_client_id') : null;
 
-      console.log('🔍 DEBUG clientId en conversations loadConversations:', clientId, typeof clientId);
+      console.log('🔍 DEBUG clientId en conversations (UUID):', clientId, typeof clientId);
 
       let query = supabase
         .from('conversations')
@@ -121,15 +116,10 @@ const Conversations: React.FC = () => {
     if (!selectedConversation || !newMessage.trim()) return;
 
     try {
-      // Convertir client_id a integer
-      const clientId_raw = typeof window !== 'undefined' ? localStorage.getItem('unicorn_client_id') : null;
-      let clientId: number | null = null;
-      if (clientId_raw) {
-        const parsed = parseInt(clientId_raw, 10);
-        clientId = isNaN(parsed) ? null : parsed;
-      }
+      // Obtener client_id como UUID string (NO convertir a integer)
+      const clientId = typeof window !== 'undefined' ? localStorage.getItem('unicorn_client_id') : null;
 
-      console.log('🔍 DEBUG clientId para mensaje:', clientId, typeof clientId);
+      console.log('🔍 DEBUG clientId para mensaje (UUID):', clientId, typeof clientId);
 
       const insertRow: any = {
         lead_phone: selectedConversation.leadId,
@@ -146,7 +136,7 @@ const Conversations: React.FC = () => {
         insertRow.client_id = clientId;
       }
 
-      console.log('🔍 DEBUG insertRow para mensaje:', insertRow);
+      console.log('🔍 DEBUG insertRow para mensaje (UUID):', insertRow);
 
       const { error: sendError } = await supabase.from('conversations').insert([insertRow]);
 
@@ -166,15 +156,10 @@ const Conversations: React.FC = () => {
   const handleStatusChange = async (newStatus: string) => {
     if (!selectedConversation) return;
 
-    // Convertir client_id a integer
-    const clientId_raw = typeof window !== 'undefined' ? localStorage.getItem('unicorn_client_id') : null;
-    let clientId: number | null = null;
-    if (clientId_raw) {
-      const parsed = parseInt(clientId_raw, 10);
-      clientId = isNaN(parsed) ? null : parsed;
-    }
+    // Obtener client_id como UUID string (NO convertir a integer)
+    const clientId = typeof window !== 'undefined' ? localStorage.getItem('unicorn_client_id') : null;
 
-    console.log('🔍 DEBUG clientId para status change:', clientId, typeof clientId);
+    console.log('🔍 DEBUG clientId para status change (UUID):', clientId, typeof clientId);
 
     try {
       let updateQuery = supabase
