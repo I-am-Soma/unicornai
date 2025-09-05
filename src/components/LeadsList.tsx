@@ -81,7 +81,7 @@ const LeadsList: React.FC = () => {
 
   // --- Helpers robustos para IDs de autenticación ---
   const getAuthIds = () => {
-    const client_id = localStorage.getItem('unicorn_client_id') || undefined;
+    const client_id_raw = localStorage.getItem('unicorn_client_id');
     let user_id = localStorage.getItem('unicorn_user_id') || undefined;
     if (!user_id) {
       try {
@@ -89,6 +89,19 @@ const LeadsList: React.FC = () => {
         if (u?.id) user_id = u.id;
       } catch {}
     }
+
+    // 🔍 DEBUG: Ver qué tenemos en localStorage
+    console.log('🔍 DEBUG client_id_raw:', client_id_raw, typeof client_id_raw);
+    console.log('🔍 DEBUG user_id:', user_id, typeof user_id);
+
+    // Convertir client_id a integer si es necesario
+    let client_id: number | undefined;
+    if (client_id_raw) {
+      const parsed = parseInt(client_id_raw, 10);
+      client_id = isNaN(parsed) ? undefined : parsed;
+      console.log('🔍 DEBUG client_id convertido:', client_id, typeof client_id);
+    }
+
     return { client_id, user_id };
   };
 
@@ -146,6 +159,9 @@ const LeadsList: React.FC = () => {
         user_id,   // <- multiusuario
       };
 
+      // 🔍 DEBUG: Ver payload de búsqueda
+      console.log('🔍 DEBUG searchPayload:', searchPayload);
+
       const calls: Promise<any>[] = [];
       if (selectedSource === 'all' || selectedSource === 'Google Maps') {
         calls.push(axios.post(GOOGLE_MAPS_WEBHOOK, searchPayload));
@@ -158,11 +174,8 @@ const LeadsList: React.FC = () => {
 
       // Si Make inserta, aquí solo refrescamos tabla tras un breve delay para que termine el escenario
       if (USE_MAKE_FOR_IMPORTS) {
-        setSuccess('Import requested. We’ll refresh the list shortly.');
+        setSuccess('Import requested. We\'ll refresh the list shortly.');
         setTimeout(() => loadLeads(), 2500);
-      } else {
-        // ⚠️ RUTA ALTERNATIVA: si quisieras insertar localmente (no recomendado si Make ya inserta)
-        // aquí podrías consumir resultados y llamar createLead(...) con client_id/user_id.
       }
     } catch (err) {
       console.error('Error searching leads:', err);
@@ -220,12 +233,22 @@ const LeadsList: React.FC = () => {
           user_id,   // <- multiusuario
         };
 
+        // 🔍 DEBUG: Ver qué se envía exactamente
+        console.log('🔍 DEBUG conversationData:', conversationData);
+        console.log('🔍 DEBUG client_id en payload:', conversationData.client_id, typeof conversationData.client_id);
+
         try {
           const { data, error } = await supabase.from('conversations').insert([conversationData]).select();
-          if (error) { errorCount++; errorDetails.push(`${lead.name}: ${error.message}`); continue; }
+          if (error) { 
+            console.error('🔍 DEBUG Supabase error:', error);
+            errorCount++; 
+            errorDetails.push(`${lead.name}: ${error.message}`); 
+            continue; 
+          }
           if (!data || data.length === 0) { errorCount++; errorDetails.push(`${lead.name}: No data returned from insert`); continue; }
           successCount++;
         } catch (insertError) {
+          console.error('🔍 DEBUG Insert error:', insertError);
           errorCount++;
           errorDetails.push(`${lead.name}: ${insertError instanceof Error ? insertError.message : 'Unknown error'}`);
         }
@@ -287,13 +310,23 @@ const LeadsList: React.FC = () => {
         user_id,   // <- multiusuario
       };
 
+      // 🔍 DEBUG: Ver payload de leads
+      console.log('🔍 DEBUG leads payload:', payload);
+      console.log('🔍 DEBUG client_id en leads:', payload.client_id, typeof payload.client_id);
+
       if (formData.id) {
         const { error } = await supabase.from('Leads').update(payload).eq('id', formData.id);
-        if (error) throw error;
+        if (error) {
+          console.error('🔍 DEBUG Update error:', error);
+          throw error;
+        }
         setSuccess('Lead updated successfully');
       } else {
         const { error } = await supabase.from('Leads').insert([payload]);
-        if (error) throw error;
+        if (error) {
+          console.error('🔍 DEBUG Insert error:', error);
+          throw error;
+        }
         setSuccess('Lead created successfully');
       }
 
