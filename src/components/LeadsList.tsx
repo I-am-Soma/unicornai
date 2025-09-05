@@ -128,7 +128,14 @@ const LeadsList: React.FC = () => {
       return;
     }
 
-    const { client_id, user_id } = getAuthIds();
+    let { client_id, user_id } = getAuthIds();
+
+// ✅ Convertir correctamente client_id a integer
+if (typeof client_id === 'string') {
+  const parsed = parseInt(client_id, 10);
+  client_id = isNaN(parsed) ? undefined : parsed;
+}
+
     if (!client_id || !user_id) {
       setError('Auth context missing. Please sign in again.');
       return;
