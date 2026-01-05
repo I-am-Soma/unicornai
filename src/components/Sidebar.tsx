@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useContext } from 'react';
 import {
   Drawer,
   List,
@@ -25,7 +25,7 @@ import {
   ChevronLeft,
 } from '@mui/icons-material';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { signOut } from '../utils/auth';
+import { AuthContext } from './AuthGuard'; // Ajusta la ruta según tu estructura
 
 const unicornLogo = 'https://raw.githubusercontent.com/I-am-Soma/unicorn-landing/main/logo%20transparente.png';
 const drawerWidth = 240;
@@ -35,6 +35,7 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const { logout } = useContext(AuthContext);
   
   const menuItems = [
     { text: 'Dashboard', icon: <Dashboard />, path: '/' },
@@ -49,10 +50,11 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
 
   const handleLogout = async () => {
     try {
-      await signOut();
+      await logout();
       navigate('/login');
+      console.log('✅ Logout exitoso');
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('❌ Error en logout:', error);
     }
   };
 
