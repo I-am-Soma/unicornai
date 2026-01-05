@@ -14,58 +14,68 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   const location = useLocation();
 
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        // 1. Verificar si hay sesión activa
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+  const checkAuth = async () => {
+    try {
+      console.log('🔄 Iniciando checkAuth...');
+      
+      // 1. Verificar si hay sesión activa
+      const { data: { session } } = await supabase.auth.getSession();
 
-        if (!session) {
-          setIsAuthorized(false);
-          setAuthChecked(true);
-          return;
-        }
-
-        setIsAuthorized(true);
-
-        // 2. Obtener datos del usuario incluyendo client_id
-        const { data: userDataFromDB, error } = await supabase
-          .from('users')
-          .select('id, email, client_id')
-          .eq('id', session.user.id)
-          .single();
-
-        if (error) {
-          console.error("❌ Error al cargar usuario:", error.message);
-        } else {
-          // 3. Guardar client_id en localStorage (CRÍTICO para multiusuario)
-          if (userDataFromDB?.client_id) {
-            localStorage.setItem('unicorn_client_id', userDataFromDB.client_id);
-            console.log('✅ client_id guardado en localStorage:', userDataFromDB.client_id);
-          }
-          
-          localStorage.setItem('unicorn_user_id', userDataFromDB.id);
-          localStorage.setItem('unicorn_user', JSON.stringify(userDataFromDB));
-          
-          setUserData(userDataFromDB);
-          console.log("✅ Datos del usuario cargados:", userDataFromDB);
-        }
-
-        // 4. También llamar a get_user_data si necesitas datos adicionales
-        const { data: rpcData } = await supabase.rpc("get_user_data");
-        if (rpcData && rpcData[0]) {
-          setUserData((prev: any) => ({ ...prev, ...rpcData[0] }));
-        }
-      } catch (err) {
-        console.error("❌ Error en checkAuth:", err);
-      } finally {
+      if (!session) {
+        console.log('❌ No hay sesión activa');
+        setIsAuthorized(false);
         setAuthChecked(true);
+        return;
       }
-    };
 
-    checkAuth();
-  }, []);
+      console.log('✅ Sesión activa:', session.user.id);
+      setIsAuthorized(true);
+
+      // 2. Obtener datos del usuario incluyendo client_id
+      console.log('🔄 Obteniendo datos del usuario...');
+      const { data: userDataFromDB, error } = await supabase
+        .from('users')
+        .select('id, email, client_id')
+        .eq('id', session.user.id)
+        .single();
+
+      console.log('🔍 Datos obtenidos de users:', userDataFromDB);
+      console.log('🔍 client_id del usuario:', userDataFromDB?.client_id);
+
+      if (error) {
+        console.error("❌ Error al cargar usuario:", error.message);
+      } else {
+        // 3. Guardar client_id en localStorage (CRÍTICO para multiusuario)
+        if (userDataFromDB?.client_id) {
+          // Asegurarse de que sea un string
+          const clientIdStr = String(userDataFromDB.client_id);
+          localStorage.setItem('unicorn_client_id', clientIdStr);
+          console.log('✅ client_id guardado en localStorage:', clientIdStr);
+        } else {
+          console.error('❌ client_id es undefined, null o vacío:', userDataFromDB?.client_id);
+        }
+        
+        localStorage.setItem('unicorn_user_id', userDataFromDB.id);
+        localStorage.setItem('unicorn_user', JSON.stringify(userDataFromDB));
+        
+        setUserData(userDataFromDB);
+        console.log("✅ Datos del usuario cargados:", userDataFromDB);
+      }
+
+      // 4. También llamar a get_user_data si necesitas datos adicionales
+      const { data: rpcData } = await supabase.rpc("get_user_data");
+      if (rpcData && rpcData[0]) {
+        setUserData((prev: any) => ({ ...prev, ...rpcData[0] }));
+      }
+    } catch (err) {
+      console.error("❌ Error en checkAuth:", err);
+    } finally {
+      setAuthChecked(true);
+    }
+  };
+
+  checkAuth();
+}, []);
 
   // Mientras verifica auth → mostrar loading
   if (!authChecked) {
