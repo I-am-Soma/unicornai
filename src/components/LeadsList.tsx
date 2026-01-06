@@ -190,76 +190,131 @@ const LeadsList: React.FC = () => {
     return `+${cleanedDigits}`;
   };
 
-  // Activar leads seleccionados → inserta en conversations con client_id y user_id
-  const handleActivateSelected = async () => {
-    if (selectedLeads.length === 0) {
-      setError('No leads selected');
+ // Activar leads seleccionados → inserta en conversations con client_id y user_id
+const handleActivateSelected = async () => {
+  if (selectedLeads.length === 0) {
+    setError('No leads selected');
+    return;
+  }
+
+  try {
+    setLoading(true);
+    
+    // 1. Obtener sesión actual
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      setError('No active session. Please log in again.');
       return;
     }
 
-    const { client_id, user_id } = getAuthIds();
-    if (!client_id || !user_id) {
-      setError('Auth context missing. Please sign in again.');
+    // 2. Obtener client_id de la tabla users
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('client_id, id')
+      .eq('id', session.user.id)
+      .single();
+
+    if (userError || !userData?.client_id) {
+      console.error('❌ Error obteniendo client_id:', userError);
+      setError('Could not get client_id. Please try logging out and back in.');
       return;
     }
 
-    try {
-      setLoading(true);
-      let successCount = 0;
-      let errorCount = 0;
-      const errorDetails: string[] = [];
+    const client_id = userData.client_id;
+    const user_id = userData.id;
 
-      for (const leadId of selectedLeads) {
-        const lead = leads.find(l => String(l.id) === String(leadId));
-        if (!lead) { errorCount++; errorDetails.push(`Lead ${leadId} not found`); continue; }
-        if (!lead.phone) { errorCount++; errorDetails.push(`Lead ${lead.name} has no phone`); continue; }
+    console.log('✅ IDs obtenidos de la DB:', { client_id, user_id });
 
-        const normalizedPhone = normalizePhone(lead.phone);
-        const whatsappFormattedPhone = `whatsapp:${normalizedPhone}`;
+    // Actualizar localStorage con los valores correctos
+    localStorage.setItem('unicorn_client_id', client_id);
+    localStorage.setItem('unicorn_user_id', user_id);
 
-        const conversationData = {
-          lead_phone: whatsappFormattedPhone,
-          last_message: '',
-          agent_name: 'Unicorn AI',
-          status: 'New',
-          created_at: new Date().toISOString(),
-          origen: 'unicorn',
-          procesar: false,
-          client_id, // <- multiusuario
-          user_id,   // <- multiusuario
-        };
+    let successCount = 0;
+    let errorCount = 0;
+    const errorDetails: string[] = [];
 
-        // 🔍 DEBUG: Ver qué se envía exactamente
-        console.log('🔍 DEBUG conversationData:', conversationData);
-        console.log('🔍 DEBUG client_id en payload:', conversationData.client_id, typeof conversationData.client_id);
-
-        try {
-          const { data, error } = await supabase.from('conversations').insert([conversationData]).select();
-          if (error) { 
-            console.error('🔍 DEBUG Supabase error:', error);
-            errorCount++; 
-            errorDetails.push(`${lead.name}: ${error.message}`); 
-            continue; 
-          }
-          if (!data || data.length === 0) { errorCount++; errorDetails.push(`${lead.name}: No data returned from insert`); continue; }
-          successCount++;
-        } catch (insertError) {
-          console.error('🔍 DEBUG Insert error:', insertError);
-          errorCount++;
-          errorDetails.push(`${lead.name}: ${insertError instanceof Error ? insertError.message : 'Unknown error'}`);
-        }
+    for (const leadId of selectedLeads) {
+      const lead = leads.find(l => String(l.id) === String(leadId));
+      
+      if (!lead) { 
+        errorCount++; 
+        errorDetails.push(`Lead ${leadId} not found`); 
+        continue; 
+      }
+      
+      if (!lead.phone) { 
+        errorCount++; 
+        errorDetails.push(`Lead ${lead.name} has no phone`); 
+        console.log(`❌ Lead sin teléfono: ${lead.name}`);
+        continue; 
       }
 
-      setSelectedLeads([]);
-      if (successCount > 0) setSuccess(`Successfully activated ${successCount} leads${errorCount > 0 ? ` (${errorCount} failed)` : ''}`);
-      if (errorCount > 0) { console.error('Activation errors:', errorDetails); setError(`Failed to activate ${errorCount} leads. Check console for details.`); }
-    } catch (err) {
-      console.error('Error activating leads:', err);
-      setError(`Failed to activate leads: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    } finally {
-      setLoading(false);
+      const normalizedPhone = normalizePhone(lead.phone);
+      const whatsappFormattedPhone = `whatsapp:${normalizedPhone}`;
+
+      const conversationData = {
+        lead_phone: whatsappFormattedPhone,
+        last_message: '',
+        agent_name: 'Unicorn AI',
+        status: 'New',
+        created_at: new Date().toISOString(),
+        origen: 'unicorn',
+        procesar: false,
+        client_id: client_id,  // ← Valor correcto de la DB
+        user_id: user_id,      // ← Valor correcto de la DB
+      };
+
+      console.log('📤 Insertando conversación:');
+      console.log('   Lead:', lead.name);
+      console.log('   Phone:', whatsappFormattedPhone);
+      console.log('   client_id:', client_id);
+      console.log('   user_id:', user_id);
+
+      try {
+        const { data, error } = await supabase
+          .from('conversations')
+          .insert([conversationData])
+          .select();
+          
+        if (error) { 
+          console.error('❌ Supabase error:', error);
+          errorCount++; 
+          errorDetails.push(`${lead.name}: ${error.message}`); 
+          continue; 
+        }
+        
+        if (!data || data.length === 0) { 
+          errorCount++; 
+          errorDetails.push(`${lead.name}: No data returned from insert`); 
+          continue; 
+        }
+        
+        successCount++;
+        console.log('✅ Conversación creada para:', lead.name);
+      } catch (insertError) {
+        console.error('❌ Insert error:', insertError);
+        errorCount++;
+        errorDetails.push(`${lead.name}: ${insertError instanceof Error ? insertError.message : 'Unknown error'}`);
+      }
     }
-  };
+
+    setSelectedLeads([]);
+    
+    if (successCount > 0) {
+      setSuccess(`Successfully activated ${successCount} leads${errorCount > 0 ? ` (${errorCount} failed)` : ''}`);
+    }
+    
+    if (errorCount > 0) { 
+      console.error('❌ Activation errors:', errorDetails); 
+      setError(`Failed to activate ${errorCount} leads. Check console for details.`); 
+    }
+  } catch (err) {
+    console.error('❌ Error activating leads:', err);
+    setError(`Failed to activate leads: ${err instanceof Error ? err.message : 'Unknown error'}`);
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Dialog open/close
   const handleOpenDialog = (lead: Lead | null = null) => {
