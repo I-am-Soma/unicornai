@@ -296,46 +296,81 @@ const LeadsList: React.FC = () => {
     setError(null); 
   };
 
- const handleSubmit = async () => {
-  console.log('🔍 1. FormData inicial:', formData);
+ const isValidUUID = (value: any) => {
+  return typeof value === 'string' &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+};
 
+const handleSubmit = async () => {
+  console.log('🟡 [handleSubmit] Inicio');
+  console.log('🟡 [handleSubmit] formData recibido:', formData);
+
+  // =========================
+  // 1. Validaciones duras
+  // =========================
   if (!formData.name || formData.name.trim() === '') {
-    setError('Name is required.');
+    setError('Name is required');
+    console.warn('⛔ Abort: name vacío');
     return;
   }
 
   if (!formData.phone || formData.phone.trim() === '') {
-    setError('Phone is required.');
+    setError('Phone is required');
+    console.warn('⛔ Abort: phone vacío');
     return;
   }
 
+  // =========================
+  // 2. Decidir CREATE vs UPDATE
+  // =========================
+  const isUpdate = Boolean(formData.id);
+
+  // =========================
+  // 3. Si es UPDATE → validar UUID
+  // =========================
+  if (isUpdate) {
+    if (!isValidUUID(formData.id)) {
+      console.error('⛔ Abort: ID inválido para update:', formData.id);
+      setError('Invalid lead ID. This lead cannot be edited.');
+      return;
+    }
+  }
+
+  console.log(
+    `🟢 [handleSubmit] Operación: ${isUpdate ? 'UPDATE' : 'CREATE'}`
+  );
+
+  // =========================
+  // 4. Ejecutar operación
+  // =========================
   try {
-    if (formData.id) {
-      console.log('🔄 UPDATE lead');
-      console.log('🆔 ID recibido:', formData.id, typeof formData.id);
-
-      // 🔐 BLINDAJE UUID
-      if (typeof formData.id !== 'string' || formData.id.length < 30) {
-        throw new Error(`Invalid UUID for update: ${formData.id}`);
-      }
-
-      const result = await updateLead(formData.id, formData);
-      console.log('✅ Update OK:', result);
+    if (isUpdate) {
+      console.log('🟢 [handleSubmit] Actualizando lead:', formData.id);
+      await updateLead(formData.id as string, formData);
       setSuccess('Lead updated successfully');
     } else {
-      console.log('🆕 CREATE lead');
-      const result = await createLead(formData);
-      console.log('✅ Create OK:', result);
+      console.log('🟢 [handleSubmit] Creando nuevo lead');
+      await createLead(formData);
       setSuccess('Lead created successfully');
     }
 
+    // =========================
+    // 5. Limpieza y refresh
+    // =========================
     handleCloseDialog();
     await loadLeads();
+    console.log('✅ [handleSubmit] Operación completada');
+
   } catch (err: any) {
-    console.error('❌ Error saving lead:', err);
+    console.error('❌ [handleSubmit] Error completo:', err);
+    console.error('❌ message:', err?.message);
+    console.error('❌ code:', err?.code);
+    console.error('❌ details:', err?.details);
+
     setError(err?.message || 'Failed to save lead');
   }
 };
+
         } catch (err) {
       console.error('Error saving lead:', err);
       setError(`Failed to save lead: ${err instanceof Error ? err.message : 'Unknown error'}`);
