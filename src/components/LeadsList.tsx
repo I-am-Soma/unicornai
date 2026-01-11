@@ -349,34 +349,7 @@ const LeadsList: React.FC = () => {
     setError(`Failed to save lead: ${err?.message || 'Unknown error'}`);
   }
 };
-      console.log('🔍 Saving lead:', payload);
-
-      if (formData.id) {
-        const { error } = await supabase
-          .from('Leads')
-          .update(payload)
-          .eq('id', formData.id);
-          
-        if (error) {
-          console.error('Update error:', error);
-          throw error;
-        }
-        setSuccess('Lead updated successfully');
-      } else {
-        const { error } = await supabase
-          .from('Leads')
-          .insert([payload]);
-          
-        if (error) {
-          console.error('Insert error:', error);
-          throw error;
-        }
-        setSuccess('Lead created successfully');
-      }
-
-      handleCloseDialog();
-      await loadLeads();
-    } catch (err) {
+        } catch (err) {
       console.error('Error saving lead:', err);
       setError(`Failed to save lead: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
