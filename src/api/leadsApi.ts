@@ -9,7 +9,7 @@ export const fetchLeads = async () => {
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
-      console.warn('No active session');
+      console.warn('⚠️ fetchLeads: No active session');
       return [];
     }
 
@@ -20,7 +20,7 @@ export const fetchLeads = async () => {
       .single();
 
     if (!userData?.client_id) {
-      console.warn('User has no client_id');
+      console.warn('⚠️ fetchLeads: User has no client_id');
       return [];
     }
 
@@ -49,14 +49,17 @@ export const fetchLeads = async () => {
 
     return mappedLeads;
   } catch (error) {
-    console.error('Error fetching leads:', error);
+    console.error('❌ Error fetching leads:', error);
     return [];
   }
 };
 
 export const createLead = async (leadData: Partial<Lead>) => {
+  console.log('📥 [createLead] 1. Datos recibidos:', leadData);
+
   try {
     if (!leadData.name || !leadData.phone) {
+      console.error('❌ [createLead] Validación fallida:', leadData);
       throw new Error('Name and phone are required');
     }
 
@@ -73,15 +76,32 @@ export const createLead = async (leadData: Partial<Lead>) => {
       created_at: new Date().toISOString()
     };
 
+    console.log('📤 [createLead] 2. Payload a insertar:', insertData);
+    console.log('🔎 [createLead] 3. Tipos de datos:');
+    console.log('   - business_name:', insertData.business_name, typeof insertData.business_name);
+    console.log('   - phone:', insertData.phone, typeof insertData.phone);
+    console.log('   - relevance:', insertData.relevance, typeof insertData.relevance);
+    console.log('   - source:', insertData.source, typeof insertData.source);
+
     const { data, error } = await supabase
       .from('Leads')
       .insert([insertData])
       .select();
 
-    if (error) throw error;
+    console.log('📬 [createLead] 4. Respuesta Supabase');
+    console.log('   - data:', data);
+    console.log('   - error:', error);
+
+    if (error) {
+      console.error('❌ [createLead] Error Supabase:', error);
+      throw error;
+    }
+
     if (!data || data.length === 0) {
       throw new Error('No data returned from insert');
     }
+
+    console.log('✅ [createLead] 5. Lead creado exitosamente:', data[0]);
 
     return {
       id: data[0].id,
@@ -98,7 +118,7 @@ export const createLead = async (leadData: Partial<Lead>) => {
       activar: data[0].activar
     };
   } catch (error) {
-    console.error('Create lead error:', error);
+    console.error('❌ [createLead] Error final:', error);
     throw error;
   }
 };
@@ -134,7 +154,7 @@ export const updateLead = async (id: string, leadData: Partial<Lead>) => {
 
     return data[0];
   } catch (error) {
-    console.error('Update lead error:', error);
+    console.error('❌ Update lead error:', error);
     throw error;
   }
 };
@@ -148,7 +168,7 @@ export const deleteLead = async (id: string) => {
 
     if (error) throw error;
   } catch (error) {
-    console.error('Delete lead error:', error);
+    console.error('❌ Delete lead error:', error);
     throw error;
   }
 };
@@ -179,7 +199,7 @@ export const fetchCampaigns = async () => {
     if (error) throw error;
     return campaigns || [];
   } catch (error) {
-    console.error('Error fetching campaigns:', error);
+    console.error('❌ Error fetching campaigns:', error);
     return [];
   }
 };
@@ -212,7 +232,7 @@ export const createCampaign = async (campaignData: Partial<CampaignData>) => {
 
     return data[0];
   } catch (error) {
-    console.error('Error creating campaign:', error);
+    console.error('❌ Error creating campaign:', error);
     throw error;
   }
 };
@@ -241,7 +261,7 @@ export const updateCampaign = async (id: string, campaignData: Partial<CampaignD
     if (error) throw error;
     return data?.[0];
   } catch (error) {
-    console.error('Error updating campaign:', error);
+    console.error('❌ Error updating campaign:', error);
     throw error;
   }
 };
@@ -255,7 +275,7 @@ export const deleteCampaign = async (id: string) => {
 
     if (error) throw error;
   } catch (error) {
-    console.error('Error deleting campaign:', error);
+    console.error('❌ Error deleting campaign:', error);
     throw error;
   }
 };
@@ -285,51 +305,10 @@ export const fetchConversations = async () => {
 
     if (error) throw error;
 
-    const mappedConversations = (data || []).map((conv: any) => ({
-      id: conv.id,
-      leadId: conv.lead_id,
-      leadName: conv.lead_phone || 'Unknown',
-      status: conv.status || 'New',
-      lastMessage: conv.last_message || '',
-      updatedAt: conv.created_at,
-      messages: []
-    }));
-
-    return mappedConversations;
+    return data || [];
   } catch (error) {
-    console.error('Error fetching conversations:', error);
+    console.error('❌ Error fetching conversations:', error);
     return [];
-  }
-};
-
-export const subscribeToConversations = (callback: (payload: any) => void) => {
-  const subscription = supabase
-    .channel('conversations_channel')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' }, callback)
-    .subscribe();
-
-  return () => subscription.unsubscribe();
-};
-
-export const sendMessage = async (conversationId: string, message: Partial<Message>) => {
-  try {
-    const insertRow = {
-      lead_id: conversationId,
-      message: message.content,
-      sender: message.senderId || 'bot',
-      created_at: new Date().toISOString()
-    };
-
-    const { data, error } = await supabase
-      .from('conversations')
-      .insert([insertRow])
-      .select();
-
-    if (error) throw error;
-    return data?.[0];
-  } catch (error) {
-    console.error('Error sending message:', error);
-    throw error;
   }
 };
 
@@ -342,9 +321,9 @@ export const fetchReports = async (): Promise<ReportData[]> => {
 };
 
 export const exportReportToPdf = (reportData: any) => {
-  console.warn('exportReportToPdf not implemented');
+  console.warn('⚠️ exportReportToPdf not implemented');
 };
 
 export const exportReportToCsv = (reportData: any) => {
-  console.warn('exportReportToCsv not implemented');
+  console.warn('⚠️ exportReportToCsv not implemented');
 };
