@@ -297,32 +297,58 @@ const LeadsList: React.FC = () => {
   };
 
   const handleSubmit = async () => {
-  if (!formData.name) { 
-    setError('Name is required.'); 
-    return; 
+  console.log('🔍 1. FormData inicial:', formData);
+
+  if (!formData.name) {
+    console.error('❌ Validación fallida: name vacío');
+    setError('Name is required.');
+    return;
   }
-  if (!formData.phone) { 
-    setError('Phone is required.'); 
-    return; 
+
+  if (!formData.phone) {
+    console.error('❌ Validación fallida: phone vacío');
+    setError('Phone is required.');
+    return;
   }
+
+  console.log('🔍 2. Validación pasada, preparando operación');
 
   try {
     if (formData.id) {
-      await updateLead(String(formData.id), formData);
+      console.log('🔍 3. MODO UPDATE');
+      console.log('🆔 Lead ID:', formData.id);
+      console.log('📦 Payload UPDATE:', formData);
+
+      const result = await updateLead(String(formData.id), formData);
+
+      console.log('✅ 5. UPDATE exitoso. Resultado:', result);
       setSuccess('Lead updated successfully');
     } else {
-      await createLead(formData);
+      console.log('🔍 3. MODO CREATE');
+      console.log('📦 Payload CREATE:', formData);
+
+      const result = await createLead(formData);
+
+      console.log('✅ 5. CREATE exitoso. Resultado:', result);
       setSuccess('Lead created successfully');
     }
 
+    console.log('🔄 Cerrando diálogo y recargando leads');
     handleCloseDialog();
+
     await loadLeads();
-  } catch (err) {
-    console.error('Error saving lead:', err);
-    setError(`Failed to save lead: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    console.log('✅ Leads recargados correctamente');
+  } catch (err: any) {
+    console.error('❌ ERROR AL GUARDAR LEAD');
+    console.error('❌ Error completo:', err);
+    console.error('❌ message:', err?.message);
+    console.error('❌ code:', err?.code);
+    console.error('❌ details:', err?.details);
+    console.error('❌ hint:', err?.hint);
+
+    setError(`Failed to save lead: ${err?.message || 'Unknown error'}`);
   }
 };
-
       console.log('🔍 Saving lead:', payload);
 
       if (formData.id) {
