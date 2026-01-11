@@ -296,57 +296,44 @@ const LeadsList: React.FC = () => {
     setError(null); 
   };
 
-  const handleSubmit = async () => {
+ const handleSubmit = async () => {
   console.log('🔍 1. FormData inicial:', formData);
 
-  if (!formData.name) {
-    console.error('❌ Validación fallida: name vacío');
+  if (!formData.name || formData.name.trim() === '') {
     setError('Name is required.');
     return;
   }
 
-  if (!formData.phone) {
-    console.error('❌ Validación fallida: phone vacío');
+  if (!formData.phone || formData.phone.trim() === '') {
     setError('Phone is required.');
     return;
   }
 
-  console.log('🔍 2. Validación pasada, preparando operación');
-
   try {
     if (formData.id) {
-      console.log('🔍 3. MODO UPDATE');
-      console.log('🆔 Lead ID:', formData.id);
-      console.log('📦 Payload UPDATE:', formData);
+      console.log('🔄 UPDATE lead');
+      console.log('🆔 ID recibido:', formData.id, typeof formData.id);
 
-      const result = await updateLead(String(formData.id), formData);
+      // 🔐 BLINDAJE UUID
+      if (typeof formData.id !== 'string' || formData.id.length < 30) {
+        throw new Error(`Invalid UUID for update: ${formData.id}`);
+      }
 
-      console.log('✅ 5. UPDATE exitoso. Resultado:', result);
+      const result = await updateLead(formData.id, formData);
+      console.log('✅ Update OK:', result);
       setSuccess('Lead updated successfully');
     } else {
-      console.log('🔍 3. MODO CREATE');
-      console.log('📦 Payload CREATE:', formData);
-
+      console.log('🆕 CREATE lead');
       const result = await createLead(formData);
-
-      console.log('✅ 5. CREATE exitoso. Resultado:', result);
+      console.log('✅ Create OK:', result);
       setSuccess('Lead created successfully');
     }
 
-    console.log('🔄 Cerrando diálogo y recargando leads');
     handleCloseDialog();
-
     await loadLeads();
-    console.log('✅ Leads recargados correctamente');
   } catch (err: any) {
-    console.error('❌ ERROR AL GUARDAR LEAD');
-    console.error('❌ Error completo:', err);
-    console.error('❌ message:', err?.message);
-    console.error('❌ code:', err?.code);
-    console.error('❌ details:', err?.details);
-    console.error('❌ hint:', err?.hint);
-
-    setError(`Failed to save lead: ${err?.message || 'Unknown error'}`);
+    console.error('❌ Error saving lead:', err);
+    setError(err?.message || 'Failed to save lead');
   }
 };
         } catch (err) {
