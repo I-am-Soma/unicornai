@@ -297,22 +297,31 @@ const LeadsList: React.FC = () => {
   };
 
   const handleSubmit = async () => {
-    if (!formData.name)  { setError('Name is required.');  return; }
-    if (!formData.phone) { setError('Phone is required.'); return; }
+  if (!formData.name) { 
+    setError('Name is required.'); 
+    return; 
+  }
+  if (!formData.phone) { 
+    setError('Phone is required.'); 
+    return; 
+  }
 
-    try {
-      const payload: any = {
-        business_name: formData.name,
-        address: formData.notes || '',
-        phone: formData.phone,
-        rating: 0,
-        website: formData.email || '',
-        relevance: formData.relevance || 'Medium',
-        source: formData.source || 'Manual',
-        created_at: new Date().toISOString(),
-        status: formData.status || 'New',
-        priority: formData.priority || 'Medium',
-      };
+  try {
+    if (formData.id) {
+      await updateLead(String(formData.id), formData);
+      setSuccess('Lead updated successfully');
+    } else {
+      await createLead(formData);
+      setSuccess('Lead created successfully');
+    }
+
+    handleCloseDialog();
+    await loadLeads();
+  } catch (err) {
+    console.error('Error saving lead:', err);
+    setError(`Failed to save lead: ${err instanceof Error ? err.message : 'Unknown error'}`);
+  }
+};
 
       console.log('🔍 Saving lead:', payload);
 
