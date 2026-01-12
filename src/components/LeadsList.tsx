@@ -38,7 +38,8 @@ import {
   Visibility as VisibilityIcon,
   Close as CloseIcon,
 } from '@mui/icons-material';
-import { fetchLeads, deleteLead } from '../api/leadsApi';
+// ✅ CORRECCIÓN: Importar desde api.ts (el archivo correcto)
+import { fetchLeads, createLead, updateLead, deleteLead } from '../api/api';
 import { Lead } from '../interfaces/interfaces';
 import { exportLeadsToPDF } from '../utils/pdfExport';
 import { exportLeadsToCSV } from '../utils/csvExport';
@@ -86,9 +87,10 @@ const LeadsList: React.FC = () => {
     try {
       setLoading(true);
       const data = await fetchLeads();
+      console.log('✅ Leads cargados:', data);
       setLeads(data);
     } catch (err) {
-      console.error('Error loading leads:', err);
+      console.error('❌ Error loading leads:', err);
       setError('Failed to load leads');
     } finally {
       setLoading(false);
@@ -156,7 +158,7 @@ const LeadsList: React.FC = () => {
         setTimeout(() => loadLeads(), 2500);
       }
     } catch (err) {
-      console.error('Error searching leads:', err);
+      console.error('❌ Error searching leads:', err);
       setError('Failed to search and import leads');
     } finally {
       setLoading(false);
@@ -261,7 +263,7 @@ const LeadsList: React.FC = () => {
         setError(`Failed to activate ${errorCount} leads. Check console for details.`); 
       }
     } catch (err) {
-      console.error('Error activating leads:', err);
+      console.error('❌ Error activating leads:', err);
       setError(`Failed to activate leads: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
@@ -296,84 +298,61 @@ const LeadsList: React.FC = () => {
     setError(null); 
   };
 
- const isValidUUID = (value: any) => {
-  return typeof value === 'string' &&
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
-};
+  const isValidUUID = (value: any) => {
+    return typeof value === 'string' &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+  };
 
-const handleSubmit = async () => {
-  console.log('🟡 [handleSubmit] Inicio');
-  console.log('🟡 [handleSubmit] formData recibido:', formData);
+  // ✅ CORRECCIÓN: handleSubmit completo y funcional
+  const handleSubmit = async () => {
+    console.log('🟡 [handleSubmit] Inicio');
+    console.log('🟡 [handleSubmit] formData:', formData);
 
-  // =========================
-  // 1. Validaciones duras
-  // =========================
-  if (!formData.name || formData.name.trim() === '') {
-    setError('Name is required');
-    console.warn('⛔ Abort: name vacío');
-    return;
-  }
+    // Validaciones
+    if (!formData.name || formData.name.trim() === '') {
+      setError('Name is required');
+      console.warn('⛔ Abort: name vacío');
+      return;
+    }
 
-  if (!formData.phone || formData.phone.trim() === '') {
-    setError('Phone is required');
-    console.warn('⛔ Abort: phone vacío');
-    return;
-  }
+    if (!formData.phone || formData.phone.trim() === '') {
+      setError('Phone is required');
+      console.warn('⛔ Abort: phone vacío');
+      return;
+    }
 
-  // =========================
-  // 2. Decidir CREATE vs UPDATE
-  // =========================
-  const isUpdate = Boolean(formData.id);
+    const isUpdate = Boolean(formData.id);
 
-  // =========================
-  // 3. Si es UPDATE → validar UUID
-  // =========================
-  if (isUpdate) {
-    if (!isValidUUID(formData.id)) {
+    if (isUpdate && !isValidUUID(formData.id)) {
       console.error('⛔ Abort: ID inválido para update:', formData.id);
       setError('Invalid lead ID. This lead cannot be edited.');
       return;
     }
-  }
 
-  console.log(
-    `🟢 [handleSubmit] Operación: ${isUpdate ? 'UPDATE' : 'CREATE'}`
-  );
+    console.log(`🟢 [handleSubmit] Operación: ${isUpdate ? 'UPDATE' : 'CREATE'}`);
 
-  // =========================
-  // 4. Ejecutar operación
-  // =========================
-  try {
-    if (isUpdate) {
-      console.log('🟢 [handleSubmit] Actualizando lead:', formData.id);
-      await updateLead(formData.id as string, formData);
-      setSuccess('Lead updated successfully');
-    } else {
-      console.log('🟢 [handleSubmit] Creando nuevo lead');
-      await createLead(formData);
-      setSuccess('Lead created successfully');
-    }
+    try {
+      if (isUpdate) {
+        console.log('🟢 [handleSubmit] Actualizando lead:', formData.id);
+        await updateLead(formData.id as string, formData);
+        setSuccess('Lead updated successfully');
+      } else {
+        console.log('🟢 [handleSubmit] Creando nuevo lead');
+        await createLead(formData);
+        setSuccess('Lead created successfully');
+      }
 
-    // =========================
-    // 5. Limpieza y refresh
-    // =========================
-    handleCloseDialog();
-    await loadLeads();
-    console.log('✅ [handleSubmit] Operación completada');
+      handleCloseDialog();
+      await loadLeads(); // ✅ Refrescar la lista después de crear/actualizar
+      console.log('✅ [handleSubmit] Operación completada');
 
-  } catch (err: any) {
-    console.error('❌ [handleSubmit] Error completo:', err);
-    console.error('❌ message:', err?.message);
-    console.error('❌ code:', err?.code);
-    console.error('❌ details:', err?.details);
+    } catch (err: any) {
+      console.error('❌ [handleSubmit] Error completo:', err);
+      console.error('❌ message:', err?.message);
+      console.error('❌ code:', err?.code);
+      console.error('❌ details:', err?.details);
 
-    setError(err?.message || 'Failed to save lead');
-  }
-};
-
-        } catch (err) {
-      console.error('Error saving lead:', err);
-      setError(`Failed to save lead: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      setError(err?.message || 'Failed to save lead');
     }
   };
 
@@ -386,7 +365,12 @@ const handleSubmit = async () => {
         setOpenDrawer(false);
         setSelectedLeadDetails(null);
       }
-  
+    } catch (err) {
+      console.error('❌ Error deleting lead:', err);
+      setError('Failed to delete lead');
+    }
+  };
+
   const handleExportPDF = () => {
     try { 
       exportLeadsToPDF(filteredLeads, 'leads-export.pdf'); 
@@ -680,37 +664,6 @@ const handleSubmit = async () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={4}>
-              <FormControl fullWidth variant="outlined" sx={{ borderRadius: '8px' }}>
-                <InputLabel>Status</InputLabel>
-                <Select value={formData.status} label="Status" onChange={(e) => setFormData({ ...formData, status: e.target.value })}>
-                  <MenuItem value="New">New</MenuItem>
-                  <MenuItem value="Contacted">Contacted</MenuItem>
-                  <MenuItem value="Pending">Pending</MenuItem>
-                  <MenuItem value="Closed">Closed</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <FormControl fullWidth variant="outlined" sx={{ borderRadius: '8px' }}>
-                <InputLabel>Priority</InputLabel>
-                <Select value={formData.priority} label="Priority" onChange={(e) => setFormData({ ...formData, priority: e.target.value })}>
-                  <MenuItem value="High">High</MenuItem>
-                  <MenuItem value="Medium">Medium</MenuItem>
-                  <MenuItem value="Low">Low</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <FormControl fullWidth variant="outlined" sx={{ borderRadius: '8px' }}>
-                <InputLabel>Relevance</InputLabel>
-                <Select value={formData.relevance || 'Medium'} label="Relevance" onChange={(e) => setFormData({ ...formData, relevance: e.target.value })}>
-                  <MenuItem value="High">High</MenuItem>
-                  <MenuItem value="Medium">Medium</MenuItem>
-                  <MenuItem value="Low">Low</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
             <Grid item xs={12}>
               <TextField label="Notes" value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} fullWidth multiline rows={3} variant="outlined" sx={{ borderRadius: '8px' }} />
             </Grid>
@@ -755,80 +708,115 @@ const handleSubmit = async () => {
               </Grid>
               <Grid item xs={12}>
                 <Typography variant="subtitle1" color="text.secondary">Email:</Typography>
-            <Typography variant="body1">
-              <a href={`mailto:${selectedLeadDetails.email}`} style={{ color: '#1976D2', textDecoration: 'none' }}>
-                {selectedLeadDetails.email}
-              </a>
-            </Typography>
-          </Grid>
-          <Grid item xs={12}>
-            <Typography variant="subtitle1" color="text.secondary">Phone:</Typography>
-            <Typography variant="body1">{selectedLeadDetails.phone}</Typography>
-          </Grid>
-          <Grid item xs={12}>
-            <Typography variant="subtitle1" color="text.secondary">Source:</Typography>
-            <Chip label={selectedLeadDetails.source} size="small" variant="outlined" sx={{ borderRadius: '6px' }} />
-          </Grid>
-          <Grid item xs={12}>
-            <Typography variant="subtitle1" color="text.secondary">Status:</Typography>
-            <Chip
-              label={`${getStatusChipProps(selectedLeadDetails.status || 'New').emoji} ${selectedLeadDetails.status}`}
-              size="small"
-              color={getStatusChipProps(selectedLeadDetails.status || 'New').color}
-              sx={{ borderRadius: '6px' }}
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <Typography variant="subtitle1" color="text.secondary">Priority:</Typography>
-            <Chip
-              label={`${getPriorityChipProps(selectedLeadDetails.priority || 'Medium').emoji} ${selectedLeadDetails.priority}`}
-              size="small"
-              color={getPriorityChipProps(selectedLeadDetails.priority || 'Medium').color}
-              sx={{ borderRadius: '6px' }}
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <Typography variant="subtitle1" color="text.secondary">Created At:</Typography>
-            <Typography variant="body1">{new Date(selectedLeadDetails.created_at || '').toLocaleDateString()}</Typography>
-          </Grid>
-          <Grid item xs={12}>
-            <Typography variant="subtitle1" color="text.secondary">Notes:</Typography>
-            <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{selectedLeadDetails.notes || 'N/A'}</Typography>
-          </Grid>
-        </Grid>
+                <Typography variant="body1">
+                  <a href={`mailto:${selectedLeadDetails.email}`} style={{ color: '#1976D2', textDecoration: 'none' }}>
+                    {selectedLeadDetails.email}
+                  </a>
+                </Typography>
+              </Grid>
+              <Grid item xs={12}>
+                <Typography variant="subtitle1" color="text.secondary">Phone:</Typography>
+                <Typography variant="body1">{selectedLeadDetails.phone}</Typography>
+              </Grid>
+              <Grid item xs={12}>
+                <Typography variant="subtitle1" color="text.secondary">Source:</Typography>
+                <Chip label={selectedLeadDetails.source} size="small" variant="outlined" sx={{ borderRadius: '6px' }} />
+              </Grid>
+              <Grid item xs={12}>
+                <Typography variant="subtitle1" color="text.secondary">Status:</Typography>
+                <Chip
+                  label={`${getStatusChipProps(selectedLeadDetails.status || 'New').emoji} ${selectedLeadDetails.status}`}
+                  size="small"
+                  color={getStatusChipProps(selectedLeadDetails.status || 'New').color}
+                  sx={{ borderRadius: '6px' }}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <Typography variant="subtitle1" color="text.secondary">Priority:</Typography>
+                <Chip
+                  label={`${getPriorityChipProps(selectedLeadDetails.priority || 'Medium').emoji} ${selectedLeadDetails.priority}`}
+                  size="small"
+                  color={getPriorityChipProps(selectedLeadDetails.priority || 'Medium').color}
+                  sx={{ borderRadius: '6px' }}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <Typography variant="subtitle1" color="text.secondary">Created At:</Typography>
+                <Typography variant="body1">{new Date(selectedLeadDetails.created_at || '').toLocaleDateString()}</Typography>
+              </Grid>
+              <Grid item xs={12}>
+                <Typography variant="subtitle1" color="text.secondary">Notes:</Typography>
+                <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{selectedLeadDetails.notes || 'N/A'}</Typography>
+              </Grid>
+            </Grid>
 
-        <Box sx={{ mt: 4, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-          <Button
-            variant="outlined"
-            startIcon={<EditIcon />}
-            onClick={() => { handleOpenDialog(selectedLeadDetails); handleCloseDrawer(); }}
-            sx={{ borderRadius: '8px' }}
-          >
-            Edit Lead
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<SendIcon />}
-            onClick={() => handleSendMessage(selectedLeadDetails.phone || '')}
-            disabled={!selectedLeadDetails.phone}
-            sx={{ borderRadius: '8px', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}
-          >
-            Send Message
-          </Button>
-        </Box>
-      </Box>
-    )}
-  </Drawer>
+            <Box sx={{ mt: 4, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+              <Button
+                variant="outlined"
+                startIcon={<EditIcon />}
+                onClick={() => { handleOpenDialog(selectedLeadDetails); handleCloseDrawer(); }}
+                sx={{ borderRadius: '8px' }}
+              >
+                Edit Lead
+              </Button>
+              <Button
+                variant="contained"
+                startIcon={<SendIcon />}
+                onClick={() => handleSendMessage(selectedLeadDetails.phone || '')}
+                disabled={!selectedLeadDetails.phone}
+                sx={{ borderRadius: '8px', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}
+              >
+                Send Message
+              </Button>
+            </Box>
+          </Box>
+        )}
+      </Drawer>
 
-  <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-    <Alert severity="error" onClose={() => setError(null)} sx={{ width: '100%', borderRadius: '8px' }}>
-      {error}
-    </Alert>
-  </Snackbar>
+      <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+        <Alert severity="error" onClose={() => setError(null)} sx={{ width: '100%', borderRadius: '8px' }}>
+          {error}
+        </Alert>
+      </Snackbar>
 
-  <Snackbar open={!!success} autoHideDuration={6000} onClose={() => setSuccess(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-    <Alert severity="success" onClose={() => setSuccess(null)} sx={{ width: '100%', borderRadius: '8px' }}>
-      {success}
-    </Alert>
-  </Snackbar>
-</Box>
+      <Snackbar open={!!success} autoHideDuration={6000} onClose={() => setSuccess(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+        <Alert severity="success" onClose={() => setSuccess(null)} sx={{ width: '100%', borderRadius: '8px' }}>
+          {success}
+        </Alert>
+      </Snackbar>
+    </Box>
+  );
+};
+
+export default LeadsList;
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <FormControl fullWidth variant="outlined" sx={{ borderRadius: '8px' }}>
+                <InputLabel>Status</InputLabel>
+                <Select value={formData.status} label="Status" onChange={(e) => setFormData({ ...formData, status: e.target.value })}>
+                  <MenuItem value="New">New</MenuItem>
+                  <MenuItem value="Contacted">Contacted</MenuItem>
+                  <MenuItem value="Pending">Pending</MenuItem>
+                  <MenuItem value="Closed">Closed</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <FormControl fullWidth variant="outlined" sx={{ borderRadius: '8px' }}>
+                <InputLabel>Priority</InputLabel>
+                <Select value={formData.priority} label="Priority" onChange={(e) => setFormData({ ...formData, priority: e.target.value })}>
+                  <MenuItem value="High">High</MenuItem>
+                  <MenuItem value="Medium">Medium</MenuItem>
+                  <MenuItem value="Low">Low</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <FormControl fullWidth variant="outlined" sx={{ borderRadius: '8px' }}>
+                <InputLabel>Relevance</InputLabel>
+                <Select value={formData.relevance || 'Medium'} label="Relevance" onChange={(e) => setFormData({ ...formData, relevance: e.target.value })}>
+                  <MenuItem value="High">High</MenuItem>
+                  <MenuItem value="Medium">Medium</MenuItem>
+                  <MenuItem value="Low">Low</MenuItem>
+                </Select>
+              </FormControl>
