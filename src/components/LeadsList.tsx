@@ -386,12 +386,7 @@ const handleSubmit = async () => {
         setOpenDrawer(false);
         setSelectedLeadDetails(null);
       }
-    } catch (err) {
-      console.error('Error deleting lead:', err);
-      setError('Failed to delete lead');
-    }
-  };
-
+  
   const handleExportPDF = () => {
     try { 
       exportLeadsToPDF(filteredLeads, 'leads-export.pdf'); 
