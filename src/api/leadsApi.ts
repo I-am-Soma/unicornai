@@ -58,11 +58,37 @@ export const createLead = async (leadData: Partial<Lead>) => {
   console.log('📥 [createLead] 1. Datos recibidos:', leadData);
 
   try {
+    // ========================================
+    // 1. VALIDACIONES
+    // ========================================
     if (!leadData.name || !leadData.phone) {
       console.error('❌ [createLead] Validación fallida:', leadData);
       throw new Error('Name and phone are required');
     }
 
+    // ========================================
+    // 2. OBTENER SESSION Y CLIENT_ID
+    // ========================================
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      throw new Error('No active session');
+    }
+
+    const { data: userData } = await supabase
+      .from('users')
+      .select('client_id, id')
+      .eq('id', session.user.id)
+      .single();
+
+    if (!userData?.client_id) {
+      throw new Error('User configuration not found');
+    }
+
+    console.log('✅ [createLead] Session válida - client_id:', userData.client_id);
+
+    // ========================================
+    // 3. PREPARAR DATOS PARA INSERT
+    // ========================================
     const insertData = {
       business_name: leadData.name,
       address: leadData.notes || '',
@@ -73,16 +99,21 @@ export const createLead = async (leadData: Partial<Lead>) => {
       source: leadData.source || 'Manual',
       status: leadData.status || 'New',
       priority: leadData.priority || 'Medium',
+      client_id: userData.client_id,
+      user_id: userData.id,
       created_at: new Date().toISOString()
     };
 
     console.log('📤 [createLead] 2. Payload a insertar:', insertData);
-    console.log('🔎 [createLead] 3. Tipos de datos:');
-    console.log('   - business_name:', insertData.business_name, typeof insertData.business_name);
-    console.log('   - phone:', insertData.phone, typeof insertData.phone);
-    console.log('   - relevance:', insertData.relevance, typeof insertData.relevance);
-    console.log('   - source:', insertData.source, typeof insertData.source);
+    console.log('🔎 [createLead] 3. Validación de campos críticos:');
+    console.log('   - business_name:', insertData.business_name, '✓');
+    console.log('   - phone:', insertData.phone, '✓');
+    console.log('   - client_id:', insertData.client_id, '✓');
+    console.log('   - user_id:', insertData.user_id, '✓');
 
+    // ========================================
+    // 4. INSERTAR EN SUPABASE
+    // ========================================
     const { data, error } = await supabase
       .from('Leads')
       .insert([insertData])
@@ -103,6 +134,9 @@ export const createLead = async (leadData: Partial<Lead>) => {
 
     console.log('✅ [createLead] 5. Lead creado exitosamente:', data[0]);
 
+    // ========================================
+    // 5. MAPEAR RESPUESTA
+    // ========================================
     return {
       id: data[0].id,
       name: data[0].business_name,
@@ -124,6 +158,8 @@ export const createLead = async (leadData: Partial<Lead>) => {
 };
 
 export const updateLead = async (id: string, leadData: Partial<Lead>) => {
+  console.log('🔄 [updateLead] Iniciando actualización:', id, leadData);
+  
   try {
     const updateData: any = {
       business_name: leadData.name,
@@ -137,9 +173,12 @@ export const updateLead = async (id: string, leadData: Partial<Lead>) => {
       priority: leadData.priority
     };
 
+    // Eliminar campos undefined
     Object.keys(updateData).forEach((key) => {
       if (updateData[key] === undefined) delete updateData[key];
     });
+
+    console.log('📤 [updateLead] Payload de actualización:', updateData);
 
     const { data, error } = await supabase
       .from('Leads')
@@ -147,14 +186,20 @@ export const updateLead = async (id: string, leadData: Partial<Lead>) => {
       .eq('id', id)
       .select();
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ [updateLead] Error Supabase:', error);
+      throw error;
+    }
+    
     if (!data || data.length === 0) {
       throw new Error('No data returned from update');
     }
 
+    console.log('✅ [updateLead] Lead actualizado:', data[0]);
     return data[0];
+    
   } catch (error) {
-    console.error('❌ Update lead error:', error);
+    console.error('❌ [updateLead] Error final:', error);
     throw error;
   }
 };
