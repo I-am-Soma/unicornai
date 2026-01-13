@@ -86,24 +86,23 @@ export const createLead = async (leadData: Partial<Lead>) => {
 
     // OPCIÓN A: Si tu tabla tiene columnas 'name', 'email', 'notes' (úsalas directamente)
     const insertData = {
-      name: leadData.name.trim(),
-      business_name: leadData.name.trim(), // También llenar business_name por compatibilidad
-      phone: leadData.phone.trim(),
-      email: leadData.email?.trim() || '',
-      website: leadData.email?.trim() || '', // También llenar website por compatibilidad
-      notes: leadData.notes?.trim() || '',
-      address: leadData.notes?.trim() || '', // También llenar address por compatibilidad
-      source: leadData.source || 'Manual',
-      status: leadData.status || 'New',
-      priority: leadData.priority || 'Medium',
-      relevance: leadData.relevance || 'Medium',
-      rating: typeof leadData.rating === 'number' ? leadData.rating : 0,
-      activar: false,
-      client_id: userData.client_id,
-      user_id: userData.id,
-      created_at: new Date().toISOString(),
-    };
-
+  name: leadData.name.trim(),
+  business_name: leadData.name.trim(), // También llenar business_name
+  phone: leadData.phone.trim(),
+  email: leadData.email?.trim() || '',
+  website: leadData.email?.trim() || '', // También llenar website
+  notes: leadData.notes?.trim() || '',
+  address: leadData.notes?.trim() || '', // También llenar address
+  source: leadData.source || 'Manual',
+  status: leadData.status || 'New',
+  priority: leadData.priority || 'Medium',
+  relevance: leadData.relevance || 'Medium',
+  rating: typeof leadData.rating === 'number' ? leadData.rating : 0,
+  activar: false,
+  client_id: userData.client_id,
+  user_id: userData.id,
+  created_at: new Date().toISOString(),
+};
     console.log('📤 [createLead] Payload final:', insertData);
 
     const { data, error } = await supabase
