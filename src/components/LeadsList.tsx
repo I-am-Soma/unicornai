@@ -789,34 +789,3 @@ const LeadsList: React.FC = () => {
 };
 
 export default LeadsList;
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <FormControl fullWidth variant="outlined" sx={{ borderRadius: '8px' }}>
-                <InputLabel>Status</InputLabel>
-                <Select value={formData.status} label="Status" onChange={(e) => setFormData({ ...formData, status: e.target.value })}>
-                  <MenuItem value="New">New</MenuItem>
-                  <MenuItem value="Contacted">Contacted</MenuItem>
-                  <MenuItem value="Pending">Pending</MenuItem>
-                  <MenuItem value="Closed">Closed</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <FormControl fullWidth variant="outlined" sx={{ borderRadius: '8px' }}>
-                <InputLabel>Priority</InputLabel>
-                <Select value={formData.priority} label="Priority" onChange={(e) => setFormData({ ...formData, priority: e.target.value })}>
-                  <MenuItem value="High">High</MenuItem>
-                  <MenuItem value="Medium">Medium</MenuItem>
-                  <MenuItem value="Low">Low</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <FormControl fullWidth variant="outlined" sx={{ borderRadius: '8px' }}>
-                <InputLabel>Relevance</InputLabel>
-                <Select value={formData.relevance || 'Medium'} label="Relevance" onChange={(e) => setFormData({ ...formData, relevance: e.target.value })}>
-                  <MenuItem value="High">High</MenuItem>
-                  <MenuItem value="Medium">Medium</MenuItem>
-                  <MenuItem value="Low">Low</MenuItem>
-                </Select>
-              </FormControl>
