@@ -28,8 +28,7 @@ import {
   Cancel as CancelIcon,
 } from '@mui/icons-material';
 import supabase from '../utils/supabaseClient';
-import { getCurrentUser } from '../auth/authService'; // ✅ CAMBIO 1: Importar tu función
-
+import { getCurrentUser } from '../auth/authService';
 interface Client {
   id: string;
   nombre: string;
