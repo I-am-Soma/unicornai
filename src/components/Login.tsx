@@ -17,7 +17,8 @@ import {
   Facebook as FacebookIcon,
   LinkedIn as LinkedInIcon
 } from '@mui/icons-material';
-import { signInWithEmail, signInWithOAuth } from '../utils/auth';
+import { signInWithEmail, signInWithOAuth } supabase from '../utils/supabaseClient';
+
 import './Login.css';
 
 const unicornLogo =
