@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { Box, CircularProgress } from "@mui/material";
-import { supabase } from "../supabaseClient";
+import supabase from '../utils/supabaseClient';
 
 interface AuthGuardProps {
   children: React.ReactNode;
