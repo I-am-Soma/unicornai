@@ -28,7 +28,7 @@ import {
   Cancel as CancelIcon,
 } from '@mui/icons-material';
 import supabase from '../utils/supabaseClient';
-import { getCurrentUser } from '../auth/authService';
+import { getCurrentUser } from '../utils/authService';
 interface Client {
   id: string;
   nombre: string;
