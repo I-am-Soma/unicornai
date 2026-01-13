@@ -44,6 +44,7 @@ import { Lead } from '../interfaces/interfaces';
 import { exportLeadsToPDF } from '../utils/pdfExport';
 import { exportLeadsToCSV } from '../utils/csvExport';
 import axios from 'axios';
+import supabase from '../utils/supabaseClient';
 
 const USE_MAKE_FOR_IMPORTS = true;
 
