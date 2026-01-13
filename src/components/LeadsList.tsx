@@ -39,7 +39,7 @@ import {
   Close as CloseIcon,
 } from '@mui/icons-material';
 // ✅ CORRECCIÓN: Importar desde api.ts (el archivo correcto)
-import { fetchLeads, createLead, updateLead, deleteLead } from '../api/api';
+import { fetchLeads, createLead, updateLead, deleteLead } from '../api/leadsApi';
 import { Lead } from '../interfaces/interfaces';
 import { exportLeadsToPDF } from '../utils/pdfExport';
 import { exportLeadsToCSV } from '../utils/csvExport';
