@@ -32,20 +32,26 @@ export const fetchLeads = async () => {
 
     if (error) throw error;
 
-    return (leads || []).map((lead: any) => ({
+    console.log('✅ [fetchLeads] Raw data from Supabase:', leads);
+
+    // Mapear tanto de las columnas nuevas como las antiguas
+    const mappedLeads = (leads || []).map((lead: any) => ({
       id: lead.id,
-      name: lead.business_name || '',
-      email: lead.website || '',
+      name: lead.name || lead.business_name || '',
+      email: lead.email || lead.website || '',
       phone: lead.phone || '',
       source: lead.source || 'Manual',
       status: lead.status || 'New',
       priority: lead.priority || 'Medium',
       relevance: lead.relevance || 'Medium',
-      notes: lead.address || '',
+      notes: lead.notes || lead.address || '',
       created_at: lead.created_at,
       rating: lead.rating || 0,
       activar: lead.activar || false,
     }));
+
+    console.log('✅ [fetchLeads] Mapped leads:', mappedLeads);
+    return mappedLeads;
   } catch (error) {
     console.error('❌ Error fetching leads:', error);
     return [];
@@ -56,8 +62,13 @@ export const createLead = async (leadData: Partial<Lead>) => {
   console.log('📥 [createLead] Datos recibidos:', leadData);
 
   try {
-    if (!leadData.name?.trim() || !leadData.phone?.trim()) {
-      throw new Error('Name and phone are required');
+    // Validación
+    if (!leadData.name?.trim()) {
+      throw new Error('Name is required');
+    }
+    
+    if (!leadData.phone?.trim()) {
+      throw new Error('Phone is required');
     }
 
     const { data: { session } } = await supabase.auth.getSession();
@@ -73,11 +84,15 @@ export const createLead = async (leadData: Partial<Lead>) => {
       throw new Error('User configuration not found');
     }
 
+    // OPCIÓN A: Si tu tabla tiene columnas 'name', 'email', 'notes' (úsalas directamente)
     const insertData = {
-      business_name: leadData.name.trim(),
+      name: leadData.name.trim(),
+      business_name: leadData.name.trim(), // También llenar business_name por compatibilidad
       phone: leadData.phone.trim(),
-      website: leadData.email?.trim() || '',
-      address: leadData.notes?.trim() || '',
+      email: leadData.email?.trim() || '',
+      website: leadData.email?.trim() || '', // También llenar website por compatibilidad
+      notes: leadData.notes?.trim() || '',
+      address: leadData.notes?.trim() || '', // También llenar address por compatibilidad
       source: leadData.source || 'Manual',
       status: leadData.status || 'New',
       priority: leadData.priority || 'Medium',
@@ -102,22 +117,26 @@ export const createLead = async (leadData: Partial<Lead>) => {
       throw error;
     }
 
-    console.log('✅ [createLead] Lead creado:', data);
+    console.log('✅ [createLead] Lead creado en DB:', data);
 
-    return {
+    // Mapear la respuesta (puede venir con cualquier nombre de columna)
+    const mappedLead = {
       id: data.id,
-      name: data.business_name,
-      email: data.website,
+      name: data.name || data.business_name,
+      email: data.email || data.website,
       phone: data.phone,
       source: data.source,
       status: data.status,
       priority: data.priority,
       relevance: data.relevance,
-      notes: data.address,
+      notes: data.notes || data.address,
       created_at: data.created_at,
       rating: data.rating,
       activar: data.activar,
     };
+
+    console.log('✅ [createLead] Lead mapeado:', mappedLead);
+    return mappedLead;
   } catch (error) {
     console.error('❌ [createLead] Error final:', error);
     throw error;
@@ -125,22 +144,45 @@ export const createLead = async (leadData: Partial<Lead>) => {
 };
 
 export const updateLead = async (id: string, leadData: Partial<Lead>) => {
-  try {
-    const updateData: any = {
-      business_name: leadData.name,
-      phone: leadData.phone,
-      website: leadData.email,
-      address: leadData.notes,
-      source: leadData.source,
-      status: leadData.status,
-      priority: leadData.priority,
-      relevance: leadData.relevance,
-      rating: leadData.rating,
-    };
+  console.log('📥 [updateLead] ID:', id);
+  console.log('📥 [updateLead] Datos recibidos:', leadData);
 
-    Object.keys(updateData).forEach(
-      (key) => updateData[key] === undefined && delete updateData[key]
-    );
+  try {
+    // Construir objeto de actualización con ambos conjuntos de columnas
+    const updateData: any = {};
+
+    if (leadData.name !== undefined) {
+      updateData.name = leadData.name;
+      updateData.business_name = leadData.name; // Ambas columnas
+    }
+    if (leadData.phone !== undefined) {
+      updateData.phone = leadData.phone;
+    }
+    if (leadData.email !== undefined) {
+      updateData.email = leadData.email;
+      updateData.website = leadData.email; // Ambas columnas
+    }
+    if (leadData.notes !== undefined) {
+      updateData.notes = leadData.notes;
+      updateData.address = leadData.notes; // Ambas columnas
+    }
+    if (leadData.source !== undefined) {
+      updateData.source = leadData.source;
+    }
+    if (leadData.status !== undefined) {
+      updateData.status = leadData.status;
+    }
+    if (leadData.priority !== undefined) {
+      updateData.priority = leadData.priority;
+    }
+    if (leadData.relevance !== undefined) {
+      updateData.relevance = leadData.relevance;
+    }
+    if (leadData.rating !== undefined) {
+      updateData.rating = leadData.rating;
+    }
+
+    console.log('📤 [updateLead] Payload final:', updateData);
 
     const { data, error } = await supabase
       .from('Leads')
@@ -149,17 +191,56 @@ export const updateLead = async (id: string, leadData: Partial<Lead>) => {
       .select()
       .single();
 
-    if (error) throw error;
-    return data;
+    if (error) {
+      console.error('❌ [updateLead] Supabase error:', error);
+      throw error;
+    }
+
+    console.log('✅ [updateLead] Lead actualizado en DB:', data);
+
+    // Mapear la respuesta (puede venir con cualquier nombre de columna)
+    const mappedLead = {
+      id: data.id,
+      name: data.name || data.business_name,
+      email: data.email || data.website,
+      phone: data.phone,
+      source: data.source,
+      status: data.status,
+      priority: data.priority,
+      relevance: data.relevance,
+      notes: data.notes || data.address,
+      created_at: data.created_at,
+      rating: data.rating,
+      activar: data.activar,
+    };
+
+    console.log('✅ [updateLead] Lead mapeado:', mappedLead);
+    return mappedLead;
   } catch (error) {
-    console.error('❌ Update lead error:', error);
+    console.error('❌ [updateLead] Error final:', error);
     throw error;
   }
 };
 
 export const deleteLead = async (id: string) => {
-  const { error } = await supabase.from('Leads').delete().eq('id', id);
-  if (error) throw error;
+  console.log('🗑️ [deleteLead] Eliminando lead:', id);
+  
+  try {
+    const { error } = await supabase
+      .from('Leads')
+      .delete()
+      .eq('id', id);
+    
+    if (error) {
+      console.error('❌ [deleteLead] Supabase error:', error);
+      throw error;
+    }
+    
+    console.log('✅ [deleteLead] Lead eliminado correctamente');
+  } catch (error) {
+    console.error('❌ [deleteLead] Error final:', error);
+    throw error;
+  }
 };
 
 // ============================================
