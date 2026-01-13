@@ -5,17 +5,15 @@ import {
   Box,
   Alert,
   Snackbar,
-  IconButton,
   useTheme,
   useMediaQuery,
-  Typography
 } from '@mui/material';
 import {
   Visibility,
   VisibilityOff,
   Google as GoogleIcon,
   Facebook as FacebookIcon,
-  LinkedIn as LinkedInIcon
+  LinkedIn as LinkedInIcon,
 } from '@mui/icons-material';
 import supabase from '../utils/supabaseClient';
 import './Login.css';
@@ -39,12 +37,9 @@ const Login: React.FC = () => {
 
   useEffect(() => {
     const user = localStorage.getItem('unicorn_user');
-    if (user) {
-      navigate('/');
-    }
-    if (!isMobile) {
-      initParticles();
-    }
+    if (user) navigate('/');
+    if (!isMobile) initParticles();
+
     return () => {
       if (animationFrameId.current) {
         cancelAnimationFrame(animationFrameId.current);
@@ -52,11 +47,15 @@ const Login: React.FC = () => {
     };
   }, [navigate, isMobile]);
 
+  // ==============================
+  // PARTICLES (sin cambios)
+  // ==============================
   const initParticles = () => {
     const canvas = document.getElementById('particles-canvas') as HTMLCanvasElement;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
@@ -126,12 +125,22 @@ const Login: React.FC = () => {
     animate();
   };
 
+  // ==============================
+  // LOGIN EMAIL (CORRECTO)
+  // ==============================
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+
     try {
-      await signInWithEmail(email, password);
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
       navigate('/');
     } catch (err: any) {
       setError(err.message || 'Login error');
@@ -140,12 +149,21 @@ const Login: React.FC = () => {
     }
   };
 
-  const handleOAuthLogin = async (provider: 'google' | 'facebook' | 'linkedin') => {
+  // ==============================
+  // LOGIN OAUTH (CORRECTO)
+  // ==============================
+  const handleOAuthLogin = async (
+    provider: 'google' | 'facebook' | 'linkedin'
+  ) => {
     setLoading(true);
     setError('');
+
     try {
-      await signInWithOAuth(provider);
-      navigate('/');
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+      });
+
+      if (error) throw error;
     } catch (err: any) {
       setError(err.message || `${provider} login error`);
     } finally {
@@ -162,7 +180,7 @@ const Login: React.FC = () => {
         justifyContent: 'center',
         background: 'linear-gradient(135deg, #0d0d0d 0%, #1a1a1a 100%)',
         position: 'relative',
-        overflow: 'visible'
+        overflow: 'visible',
       }}
     >
       {!isMobile && (
@@ -170,11 +188,10 @@ const Login: React.FC = () => {
           id="particles-canvas"
           style={{
             position: 'absolute',
-            top: 0,
-            left: 0,
+            inset: 0,
             width: '100%',
             height: '100%',
-            zIndex: 0
+            zIndex: 0,
           }}
         />
       )}
@@ -182,12 +199,9 @@ const Login: React.FC = () => {
       <div className="login-wrapper">
         <div className="login-container">
           <div className="login-header">
-            <img
-              src={unicornLogo}
-              alt="Unicorn AI Logo"
-            />
+            <img src={unicornLogo} alt="Unicorn AI Logo" />
           </div>
-          
+
           <form onSubmit={handleLogin} className="login-form">
             <div className="input-container">
               <input
@@ -199,7 +213,7 @@ const Login: React.FC = () => {
                 required
               />
             </div>
-            
+
             <div className="input-container">
               <input
                 type={showPassword ? 'text' : 'password'}
@@ -217,7 +231,7 @@ const Login: React.FC = () => {
                 {showPassword ? <VisibilityOff /> : <Visibility />}
               </button>
             </div>
-            
+
             <button
               type="submit"
               className={`btn-neon${loading ? ' loading' : ''}`}
@@ -225,33 +239,33 @@ const Login: React.FC = () => {
             >
               {!loading && 'SIGN IN'}
             </button>
-            
+
             <div className="login-options">
               <Link to="#" className="forgot-password">Forgot Password?</Link>
               <Link to="/register" className="signup">Sign Up</Link>
             </div>
-            
+
             <div className="separator">
               <div className="separator-line" />
               <div className="separator-text">OR</div>
               <div className="separator-line" />
             </div>
-            
+
             <div className="oauth-buttons">
-              <button className="oauth-btn google" onClick={() => handleOAuthLogin('google')} disabled={loading}>
+              <button className="oauth-btn google" onClick={() => handleOAuthLogin('google')} type="button">
                 <GoogleIcon />
               </button>
-              <button className="oauth-btn facebook" onClick={() => handleOAuthLogin('facebook')} disabled={loading}>
+              <button className="oauth-btn facebook" onClick={() => handleOAuthLogin('facebook')} type="button">
                 <FacebookIcon />
               </button>
-              <button className="oauth-btn linkedin" onClick={() => handleOAuthLogin('linkedin')} disabled={loading}>
+              <button className="oauth-btn linkedin" onClick={() => handleOAuthLogin('linkedin')} type="button">
                 <LinkedInIcon />
               </button>
             </div>
           </form>
         </div>
       </div>
-      
+
       <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError('')}>
         <Alert severity="error">{error}</Alert>
       </Snackbar>
@@ -260,4 +274,3 @@ const Login: React.FC = () => {
 };
 
 export default Login;
-
