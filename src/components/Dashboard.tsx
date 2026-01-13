@@ -17,7 +17,7 @@ import {
 import { Line, Doughnut } from "react-chartjs-2";
 import { Period } from "./Header";
 import { Add as AddIcon } from "@mui/icons-material";
-import { supabase } from "../supabaseClient"; // Asegúrate de tener este import correcto
+import supabase from '../utils/supabaseClient';
 
 Chart.register(
   CategoryScale,
