@@ -98,8 +98,7 @@ export const createLead = async (leadData: Partial<Lead>) => {
   priority: leadData.priority || 'Medium',
   relevance: leadData.relevance || 'Medium',
   rating: typeof leadData.rating === 'number' ? leadData.rating : 0,
-  activar: false,
-  client_id: userData.client_id,
+    client_id: userData.client_id,
   user_id: userData.id,
   created_at: new Date().toISOString(),
 };
