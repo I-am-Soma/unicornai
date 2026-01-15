@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -27,6 +27,7 @@ import {
   DialogContent,
   DialogActions,
   InputAdornment,
+  CircularProgress,
 } from '@mui/material';
 import {
   Person as PersonIcon,
@@ -45,6 +46,7 @@ import {
   Send as SendIcon,
   Schedule as ScheduleIcon,
 } from '@mui/icons-material';
+import supabase from '../utils/supabaseClient';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -73,24 +75,45 @@ function TabPanel(props: TabPanelProps) {
 }
 
 const Settings: React.FC = () => {
+  const [loading, setLoading] = useState(true);
   const [tabValue, setTabValue] = useState(0);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const [openPasswordDialog, setOpenPasswordDialog] = useState(false);
   const [openIntegrationDialog, setOpenIntegrationDialog] = useState(false);
   const [currentIntegration, setCurrentIntegration] = useState<string>('');
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
+  
+  // User data
+  const [userId, setUserId] = useState<string>('');
+  const [clientId, setClientId] = useState<string>('');
+  const [userProfile, setUserProfile] = useState({
+    email: '',
+    first_name: '',
+    last_name: '',
+    phone: '',
+    job_title: '',
+    company: '',
+    timezone: '',
+  });
+
+  // Password form
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
   });
+
+  // Integration settings (stored per client)
   const [integrationForm, setIntegrationForm] = useState({
     apiKey: '',
     secretKey: '',
     webhookUrl: '',
   });
+
+  // Notification settings (stored per user)
   const [notificationSettings, setNotificationSettings] = useState({
     newLeads: true,
     leadStatusChanges: true,
@@ -99,6 +122,8 @@ const Settings: React.FC = () => {
     emailNotifications: true,
     pushNotifications: false,
   });
+
+  // Automation settings (stored per client)
   const [automationSettings, setAutomationSettings] = useState({
     autoResponders: true,
     leadScoring: true,
@@ -106,31 +131,149 @@ const Settings: React.FC = () => {
     campaignOptimization: false,
   });
 
+  useEffect(() => {
+    loadUserSettings();
+  }, []);
+
+  const loadUserSettings = async () => {
+    try {
+      setLoading(true);
+      console.log('🔄 Loading user settings...');
+
+      // Get current session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setError('No active session');
+        return;
+      }
+
+      setUserId(session.user.id);
+      console.log('✅ User ID:', session.user.id);
+
+      // Get user data from users table
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('*, client_id')
+        .eq('id', session.user.id)
+        .single();
+
+      if (userError) throw userError;
+
+      console.log('✅ User data loaded:', userData);
+
+      setClientId(userData.client_id);
+      setUserProfile({
+        email: session.user.email || '',
+        first_name: userData.first_name || '',
+        last_name: userData.last_name || '',
+        phone: userData.phone || '',
+        job_title: userData.job_title || '',
+        company: userData.company || '',
+        timezone: userData.timezone || '(UTC-05:00) Eastern Time (US & Canada)',
+      });
+
+      // Load notification settings (user-specific)
+      if (userData.notification_settings) {
+        setNotificationSettings({
+          ...notificationSettings,
+          ...userData.notification_settings,
+        });
+      }
+
+      // Load automation settings (client-specific)
+      const { data: clientSettings } = await supabase
+        .from('client_settings')
+        .select('automation_settings, integration_settings')
+        .eq('client_id', userData.client_id)
+        .single();
+
+      if (clientSettings) {
+        console.log('✅ Client settings loaded');
+        if (clientSettings.automation_settings) {
+          setAutomationSettings({
+            ...automationSettings,
+            ...clientSettings.automation_settings,
+          });
+        }
+        if (clientSettings.integration_settings) {
+          // Load integration configs (excluding sensitive data)
+          console.log('✅ Integration settings loaded');
+        }
+      }
+
+    } catch (err: any) {
+      console.error('❌ Error loading settings:', err);
+      setError(err.message || 'Failed to load settings');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
 
-  const handleSaveProfile = () => {
-    setSuccessMessage('Profile updated successfully');
-    setShowSuccess(true);
+  const handleSaveProfile = async () => {
+    try {
+      console.log('💾 Saving profile...');
+
+      const { error } = await supabase
+        .from('users')
+        .update({
+          first_name: userProfile.first_name,
+          last_name: userProfile.last_name,
+          phone: userProfile.phone,
+          job_title: userProfile.job_title,
+          company: userProfile.company,
+          timezone: userProfile.timezone,
+        })
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      console.log('✅ Profile saved');
+      setSuccessMessage('Profile updated successfully');
+      setShowSuccess(true);
+    } catch (err: any) {
+      console.error('❌ Error saving profile:', err);
+      setError(err.message);
+    }
   };
 
-  const handleChangePassword = () => {
-    // Validate passwords
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      setSuccessMessage('New passwords do not match');
+  const handleChangePassword = async () => {
+    try {
+      // Validate passwords
+      if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+        setError('New passwords do not match');
+        return;
+      }
+
+      if (passwordForm.newPassword.length < 8) {
+        setError('Password must be at least 8 characters');
+        return;
+      }
+
+      console.log('🔐 Changing password...');
+
+      const { error } = await supabase.auth.updateUser({
+        password: passwordForm.newPassword
+      });
+
+      if (error) throw error;
+
+      console.log('✅ Password changed');
+      setOpenPasswordDialog(false);
+      setSuccessMessage('Password changed successfully');
       setShowSuccess(true);
-      return;
+      setPasswordForm({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      });
+    } catch (err: any) {
+      console.error('❌ Error changing password:', err);
+      setError(err.message);
     }
-    
-    setOpenPasswordDialog(false);
-    setSuccessMessage('Password changed successfully');
-    setShowSuccess(true);
-    setPasswordForm({
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: '',
-    });
   };
 
   const handleOpenIntegration = (integration: string) => {
@@ -138,32 +281,145 @@ const Settings: React.FC = () => {
     setOpenIntegrationDialog(true);
   };
 
-  const handleSaveIntegration = () => {
-    setOpenIntegrationDialog(false);
-    setSuccessMessage(`${currentIntegration} integration configured successfully`);
-    setShowSuccess(true);
-    setIntegrationForm({
-      apiKey: '',
-      secretKey: '',
-      webhookUrl: '',
-    });
+  const handleSaveIntegration = async () => {
+    try {
+      console.log(`💾 Saving ${currentIntegration} integration...`);
+
+      // Get or create client_settings
+      const { data: existing } = await supabase
+        .from('client_settings')
+        .select('id, integration_settings')
+        .eq('client_id', clientId)
+        .single();
+
+      const currentIntegrations = existing?.integration_settings || {};
+      const updatedIntegrations = {
+        ...currentIntegrations,
+        [currentIntegration.toLowerCase()]: {
+          api_key: integrationForm.apiKey,
+          secret_key: integrationForm.secretKey,
+          webhook_url: integrationForm.webhookUrl,
+          enabled: true,
+          configured_at: new Date().toISOString(),
+        }
+      };
+
+      if (existing) {
+        // Update existing
+        const { error } = await supabase
+          .from('client_settings')
+          .update({ integration_settings: updatedIntegrations })
+          .eq('id', existing.id);
+
+        if (error) throw error;
+      } else {
+        // Create new
+        const { error } = await supabase
+          .from('client_settings')
+          .insert({
+            client_id: clientId,
+            integration_settings: updatedIntegrations,
+          });
+
+        if (error) throw error;
+      }
+
+      console.log(`✅ ${currentIntegration} integration saved`);
+      setOpenIntegrationDialog(false);
+      setSuccessMessage(`${currentIntegration} integration configured successfully`);
+      setShowSuccess(true);
+      setIntegrationForm({
+        apiKey: '',
+        secretKey: '',
+        webhookUrl: '',
+      });
+    } catch (err: any) {
+      console.error('❌ Error saving integration:', err);
+      setError(err.message);
+    }
   };
 
-  const handleSaveNotifications = () => {
-    setSuccessMessage('Notification settings saved successfully');
-    setShowSuccess(true);
+  const handleSaveNotifications = async () => {
+    try {
+      console.log('💾 Saving notification settings...');
+
+      const { error } = await supabase
+        .from('users')
+        .update({
+          notification_settings: notificationSettings
+        })
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      console.log('✅ Notification settings saved');
+      setSuccessMessage('Notification settings saved successfully');
+      setShowSuccess(true);
+    } catch (err: any) {
+      console.error('❌ Error saving notifications:', err);
+      setError(err.message);
+    }
   };
 
-  const handleSaveAutomation = () => {
-    setSuccessMessage('Automation settings saved successfully');
-    setShowSuccess(true);
+  const handleSaveAutomation = async () => {
+    try {
+      console.log('💾 Saving automation settings...');
+
+      // Get or create client_settings
+      const { data: existing } = await supabase
+        .from('client_settings')
+        .select('id')
+        .eq('client_id', clientId)
+        .single();
+
+      if (existing) {
+        // Update existing
+        const { error } = await supabase
+          .from('client_settings')
+          .update({ automation_settings: automationSettings })
+          .eq('id', existing.id);
+
+        if (error) throw error;
+      } else {
+        // Create new
+        const { error } = await supabase
+          .from('client_settings')
+          .insert({
+            client_id: clientId,
+            automation_settings: automationSettings,
+          });
+
+        if (error) throw error;
+      }
+
+      console.log('✅ Automation settings saved');
+      setSuccessMessage('Automation settings saved successfully');
+      setShowSuccess(true);
+    } catch (err: any) {
+      console.error('❌ Error saving automation:', err);
+      setError(err.message);
+    }
   };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '70vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h5" sx={{ mb: 3 }}>Settings</Typography>
+      <Typography variant="h5" sx={{ mb: 3, fontWeight: 600 }}>Settings</Typography>
 
-      <Paper sx={{ width: '100%' }}>
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
+
+      <Paper sx={{ width: '100%' }} elevation={3}>
         <Tabs
           value={tabValue}
           onChange={handleTabChange}
@@ -193,73 +449,77 @@ const Settings: React.FC = () => {
                   fontSize: '3rem',
                 }}
               >
-                A
+                {userProfile.first_name?.[0] || userProfile.email?.[0]?.toUpperCase() || 'U'}
               </Avatar>
-              <IconButton
-                color="primary"
-                sx={{
-                  position: 'relative',
-                  top: -30,
-                  right: -30,
-                  bgcolor: 'white',
-                  boxShadow: 1,
-                  '&:hover': { bgcolor: 'grey.100' }
-                }}
-              >
-                <EditIcon />
-              </IconButton>
-              <Typography variant="h6">Admin User</Typography>
-              <Typography variant="body2" color="text.secondary">admin@unicorn.ai</Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>Administrator</Typography>
+              <Typography variant="h6">
+                {userProfile.first_name} {userProfile.last_name}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {userProfile.email}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                {userProfile.job_title || 'User'}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+                Client ID: {clientId}
+              </Typography>
             </Grid>
             <Grid item xs={12} md={8}>
               <Grid container spacing={2}>
                 <Grid item xs={12} sm={6}>
                   <TextField
                     label="First Name"
-                    defaultValue="Admin"
+                    value={userProfile.first_name}
+                    onChange={(e) => setUserProfile({ ...userProfile, first_name: e.target.value })}
                     fullWidth
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <TextField
                     label="Last Name"
-                    defaultValue="User"
+                    value={userProfile.last_name}
+                    onChange={(e) => setUserProfile({ ...userProfile, last_name: e.target.value })}
                     fullWidth
                   />
                 </Grid>
                 <Grid item xs={12}>
                   <TextField
                     label="Email Address"
-                    defaultValue="admin@unicorn.ai"
+                    value={userProfile.email}
                     fullWidth
+                    disabled
+                    helperText="Email cannot be changed"
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <TextField
                     label="Phone Number"
-                    defaultValue="+1 (555) 123-4567"
+                    value={userProfile.phone}
+                    onChange={(e) => setUserProfile({ ...userProfile, phone: e.target.value })}
                     fullWidth
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <TextField
                     label="Job Title"
-                    defaultValue="Marketing Director"
+                    value={userProfile.job_title}
+                    onChange={(e) => setUserProfile({ ...userProfile, job_title: e.target.value })}
                     fullWidth
                   />
                 </Grid>
                 <Grid item xs={12}>
                   <TextField
                     label="Company"
-                    defaultValue="Unicorn AI"
+                    value={userProfile.company}
+                    onChange={(e) => setUserProfile({ ...userProfile, company: e.target.value })}
                     fullWidth
                   />
                 </Grid>
                 <Grid item xs={12}>
                   <TextField
                     label="Time Zone"
-                    defaultValue="(UTC-05:00) Eastern Time (US & Canada)"
+                    value={userProfile.timezone}
+                    onChange={(e) => setUserProfile({ ...userProfile, timezone: e.target.value })}
                     fullWidth
                     select
                     SelectProps={{ native: true }}
@@ -291,7 +551,7 @@ const Settings: React.FC = () => {
             <CardContent>
               <Typography variant="h6" gutterBottom>Password</Typography>
               <Typography variant="body2" color="text.secondary" paragraph>
-                Your password was last changed 30 days ago. We recommend changing your password regularly for security.
+                Manage your account password. We recommend using a strong password and changing it regularly.
               </Typography>
               <Button
                 variant="outlined"
@@ -302,54 +562,29 @@ const Settings: React.FC = () => {
             </CardContent>
           </Card>
 
-          <Card sx={{ mb: 3 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>Two-Factor Authentication</Typography>
-              <Typography variant="body2" color="text.secondary" paragraph>
-                Add an extra layer of security to your account by enabling two-factor authentication.
-              </Typography>
-              <FormControlLabel
-                control={<Switch color="primary" />}
-                label="Enable Two-Factor Authentication"
-              />
-            </CardContent>
-          </Card>
-
           <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom>Login Sessions</Typography>
-              <Typography variant="body2" color="text.secondary" paragraph>
-                You're currently logged in from these devices:
-              </Typography>
+              <Typography variant="h6" gutterBottom>Account Information</Typography>
               <List>
                 <ListItem>
-                  <ListItemIcon>
-                    <SecurityIcon />
-                  </ListItemIcon>
                   <ListItemText
-                    primary="Chrome on Windows"
-                    secondary="Active now • IP: 192.168.1.1"
+                    primary="User ID"
+                    secondary={userId}
                   />
-                  <ListItemSecondaryAction>
-                    <Button color="error" size="small">
-                      Logout
-                    </Button>
-                  </ListItemSecondaryAction>
                 </ListItem>
                 <Divider />
                 <ListItem>
-                  <ListItemIcon>
-                    <SecurityIcon />
-                  </ListItemIcon>
                   <ListItemText
-                    primary="Safari on iPhone"
-                    secondary="Last active: 2 days ago • IP: 192.168.1.2"
+                    primary="Client ID"
+                    secondary={clientId}
                   />
-                  <ListItemSecondaryAction>
-                    <Button color="error" size="small">
-                      Logout
-                    </Button>
-                  </ListItemSecondaryAction>
+                </ListItem>
+                <Divider />
+                <ListItem>
+                  <ListItemText
+                    primary="Email"
+                    secondary={userProfile.email}
+                  />
                 </ListItem>
               </List>
             </CardContent>
@@ -358,6 +593,9 @@ const Settings: React.FC = () => {
 
         {/* Integrations Tab */}
         <TabPanel value={tabValue} index={2}>
+          <Alert severity="info" sx={{ mb: 3 }}>
+            Integration settings are shared across your organization (Client ID: {clientId})
+          </Alert>
           <Grid container spacing={3}>
             <Grid item xs={12} md={4}>
               <Card>
@@ -430,6 +668,9 @@ const Settings: React.FC = () => {
 
         {/* Notifications Tab */}
         <TabPanel value={tabValue} index={3}>
+          <Alert severity="info" sx={{ mb: 3 }}>
+            Notification preferences are personal to your account
+          </Alert>
           <Card sx={{ mb: 3 }}>
             <CardContent>
               <Typography variant="h6" gutterBottom>Notification Preferences</Typography>
@@ -562,6 +803,9 @@ const Settings: React.FC = () => {
 
         {/* Automation Tab */}
         <TabPanel value={tabValue} index={4}>
+          <Alert severity="info" sx={{ mb: 3 }}>
+            Automation settings apply to your entire organization (Client ID: {clientId})
+          </Alert>
           <Card sx={{ mb: 3 }}>
             <CardContent>
               <Typography variant="h6" gutterBottom>Lead Automation</Typography>
@@ -658,43 +902,6 @@ const Settings: React.FC = () => {
               </Button>
             </CardContent>
           </Card>
-
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>Automation Rules</Typography>
-              <Typography variant="body2" color="text.secondary" paragraph>
-                Create custom rules to automate lead management.
-              </Typography>
-              <List>
-                <ListItem>
-                  <ListItemText
-                    primary="High Priority for Enterprise Leads"
-                    secondary="When lead's company size > 500, set priority to High"
-                  />
-                  <ListItemSecondaryAction>
-                    <Switch defaultChecked />
-                  </ListItemSecondaryAction>
-                </ListItem>
-                <Divider />
-                <ListItem>
-                  <ListItemText
-                    primary="Auto-assign to Sales Team"
-                    secondary="When lead's budget > $10,000, assign to Sales Team"
-                  />
-                  <ListItemSecondaryAction>
-                    <Switch defaultChecked />
-                  </ListItemSecondaryAction>
-                </ListItem>
-              </List>
-              <Button
-                variant="outlined"
-                fullWidth
-                sx={{ mt: 2 }}
-              >
-                Create New Rule
-              </Button>
-            </CardContent>
-          </Card>
         </TabPanel>
       </Paper>
 
@@ -703,32 +910,13 @@ const Settings: React.FC = () => {
         <DialogTitle>Change Password</DialogTitle>
         <DialogContent>
           <TextField
-            label="Current Password"
-            type={showCurrentPassword ? 'text' : 'password'}
-            fullWidth
-            margin="normal"
-            value={passwordForm.currentPassword}
-            onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton
-                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                    edge="end"
-                  >
-                    {showCurrentPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                  </IconButton>
-                </InputAdornment>
-              ),
-            }}
-          />
-          <TextField
             label="New Password"
             type={showNewPassword ? 'text' : 'password'}
             fullWidth
             margin="normal"
             value={passwordForm.newPassword}
             onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+            helperText="Minimum 8 characters"
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
@@ -758,22 +946,28 @@ const Settings: React.FC = () => {
       </Dialog>
 
       {/* Integration Dialog */}
-      <Dialog open={openIntegrationDialog} onClose={() => setOpenIntegrationDialog(false)}>
+      <Dialog open={openIntegrationDialog} onClose={() => setOpenIntegrationDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle>{currentIntegration} Integration</DialogTitle>
         <DialogContent>
+          <Alert severity="warning" sx={{ mt: 2, mb: 2 }}>
+            These settings will be shared across your organization
+          </Alert>
           <TextField
             label="API Key"
             fullWidth
             margin="normal"
             value={integrationForm.apiKey}
             onChange={(e) => setIntegrationForm({ ...integrationForm, apiKey: e.target.value })}
+            placeholder="Enter your API key"
           />
           <TextField
             label="Secret Key"
+            type="password"
             fullWidth
             margin="normal"
             value={integrationForm.secretKey}
             onChange={(e) => setIntegrationForm({ ...integrationForm, secretKey: e.target.value })}
+            placeholder="Enter your secret key"
           />
           <TextField
             label="Webhook URL"
@@ -781,6 +975,7 @@ const Settings: React.FC = () => {
             margin="normal"
             value={integrationForm.webhookUrl}
             onChange={(e) => setIntegrationForm({ ...integrationForm, webhookUrl: e.target.value })}
+            placeholder="https://your-webhook-url.com"
           />
         </DialogContent>
         <DialogActions>
@@ -793,6 +988,7 @@ const Settings: React.FC = () => {
         open={showSuccess}
         autoHideDuration={6000}
         onClose={() => setShowSuccess(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
         <Alert severity="success" onClose={() => setShowSuccess(false)}>
           {successMessage}
