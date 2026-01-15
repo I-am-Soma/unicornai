@@ -1,108 +1,57 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Box, CircularProgress, Alert
+  Box,
+  Paper,
+  Typography,
+  CircularProgress,
+  Alert,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Chip,
 } from '@mui/material';
-import supabase from '../utils/supabaseClient';
+import { fetchConversations } from '../api/leadsApi';
+
+interface Conversation {
+  id: string;
+  lead_phone: string;
+  last_message: string;
+  agent_name: string;
+  status: string;
+  created_at: string;
+  origen: string;
+}
 
 const Conversations: React.FC = () => {
-  const [conversations, setConversations] = useState<any[]>([]);
-  const [selectedConversation, setSelectedConversation] = useState<any | null>(null);
-  const [newMessage, setNewMessage] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [modoRespuesta, setModoRespuesta] = useState<'text' | 'audio'>('text');
 
   useEffect(() => {
     loadConversations();
-
-    const channel = supabase
-      .channel('public:conversations')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'conversations' },
-        () => loadConversations()
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, []);
 
   const loadConversations = async () => {
     try {
       setLoading(true);
       setError(null);
-
-      const { data, error } = await supabase
-        .from('conversations')
-        .select('id, lead_phone, last_message, agent_name, created_at, status, origen, procesar')
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-
-      const grouped = (data || []).reduce((acc: any, curr: any) => {
-        const key = curr.lead_phone || 'unknown';
-        if (!acc[key]) {
-          acc[key] = {
-            id: curr.id,
-            leadId: curr.lead_phone,
-            lastMessage: curr.last_message,
-            updatedAt: curr.created_at,
-            status: curr.status,
-            messages: [],
-          };
-        }
-        acc[key].messages.push({
-          id: curr.id,
-          sender: curr.agent_name,
-          content: curr.last_message,
-          timestamp: curr.created_at,
-        });
-        acc[key].lastMessage = curr.last_message;
-        acc[key].updatedAt = curr.created_at;
-        return acc;
-      }, {});
-
-      setConversations(Object.values(grouped));
+      const data = await fetchConversations();
+      console.log('✅ Conversations loaded:', data);
+      setConversations(data || []);
     } catch (err) {
-      console.error(err);
-      setError('No se pudieron cargar las conversaciones');
+      console.error('❌ Error loading conversations:', err);
+      setError('Failed to load conversations');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSendMessage = async () => {
-    if (!selectedConversation || !newMessage.trim()) return;
-
-    try {
-      const { error } = await supabase.from('conversations').insert([
-        {
-          lead_phone: selectedConversation.leadId,
-          last_message: newMessage,
-          agent_name: 'bot',
-          status: 'In Progress',
-          origen: 'unicorn',
-          procesar: false,
-          modo_respuesta: modoRespuesta,
-        },
-      ]);
-
-      if (error) throw error;
-
-      setNewMessage('');
-      await loadConversations();
-    } catch (err) {
-      console.error(err);
-      setError('Error al enviar el mensaje');
-    }
-  };
-
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', height: '100%' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
         <CircularProgress />
       </Box>
     );
@@ -118,7 +67,54 @@ const Conversations: React.FC = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      {/* UI intacta */}
+      <Typography variant="h5" sx={{ mb: 3, fontWeight: 600 }}>
+        Conversations
+      </Typography>
+
+      {conversations.length === 0 ? (
+        <Paper sx={{ p: 4, textAlign: 'center' }}>
+          <Typography variant="body1" color="text.secondary">
+            No conversations found. Activate leads to start conversations.
+          </Typography>
+        </Paper>
+      ) : (
+        <TableContainer component={Paper} elevation={3}>
+          <Table>
+            <TableHead>
+              <TableRow sx={{ bgcolor: 'primary.main' }}>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Phone</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Agent</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Status</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Last Message</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Source</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Created</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {conversations.map((conv) => (
+                <TableRow key={conv.id} hover>
+                  <TableCell>{conv.lead_phone}</TableCell>
+                  <TableCell>{conv.agent_name}</TableCell>
+                  <TableCell>
+                    <Chip
+                      label={conv.status}
+                      size="small"
+                      color={conv.status === 'New' ? 'primary' : 'default'}
+                    />
+                  </TableCell>
+                  <TableCell>{conv.last_message || 'N/A'}</TableCell>
+                  <TableCell>
+                    <Chip label={conv.origen} size="small" variant="outlined" />
+                  </TableCell>
+                  <TableCell>
+                    {new Date(conv.created_at).toLocaleDateString()}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
     </Box>
   );
 };
