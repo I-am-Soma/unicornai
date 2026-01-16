@@ -1,165 +1,208 @@
-import React, { useState } from 'react';
-import { 
-  Box, 
-  AppBar, 
-  Toolbar, 
-  Typography, 
-  IconButton, 
-  useMediaQuery, 
-  useTheme,
-  Fade,
+import React from 'react';
+import {
+  Drawer,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Box,
+  Typography,
+  Divider,
+  Badge,
 } from '@mui/material';
-import { Menu, Notifications, AccountCircle } from '@mui/icons-material';
-import Sidebar from './Sidebar';
+import {
+  Dashboard as DashboardIcon,
+  People as PeopleIcon,
+  Campaign as CampaignIcon,
+  Message as MessageIcon,
+  Assessment as AssessmentIcon,
+  Settings as SettingsIcon,
+  People as ClientsIcon,
+  Help as HelpIcon,
+} from '@mui/icons-material';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useNotifications } from '../components/NotificationSystem';
 
-interface MainLayoutProps {
-  children: React.ReactNode;
+interface SidebarProps {
+  open: boolean;
+  onClose: () => void;
+  variant: 'permanent' | 'temporary';
+}
+
+interface NavItem {
+  text: string;
+  icon: React.ReactElement;
+  path: string;
+  showBadge?: boolean; // Para mostrar contador de notificaciones
 }
 
 const drawerWidth = 240;
 
-const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  
-  // Para mobile: controlar si el drawer está abierto (colapsado por defecto)
-  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+const Sidebar: React.FC<SidebarProps> = ({ open, onClose, variant }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { unreadCount } = useNotifications(); // Hook para obtener notificaciones no leídas
 
-  const handleDrawerToggle = () => {
-    setMobileDrawerOpen(!mobileDrawerOpen);
+  const navItems: NavItem[] = [
+    { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
+    { text: 'Lead Management', icon: <PeopleIcon />, path: '/leads' },
+    { text: 'Campaigns', icon: <CampaignIcon />, path: '/campaigns' },
+    { 
+      text: 'Conversations', 
+      icon: <MessageIcon />, 
+      path: '/conversations',
+      showBadge: true, // Mostrar badge en Conversations
+    },
+    { text: 'Reports & Analytics', icon: <AssessmentIcon />, path: '/reports' },
+    { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
+    { text: 'Clients', icon: <ClientsIcon />, path: '/clients' },
+    { text: 'Help Center', icon: <HelpIcon />, path: '/help' },
+  ];
+
+  const handleNavigation = (path: string) => {
+    navigate(path);
+    if (variant === 'temporary') {
+      onClose();
+    }
   };
 
-  const handleDrawerClose = () => {
-    setMobileDrawerOpen(false);
-  };
-
-  return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-      {/* AppBar - Solo visible en mobile */}
-      {isMobile && (
-        <AppBar
-          position="fixed"
-          elevation={1}
-          sx={{
-            width: '100%',
-            zIndex: (theme) => theme.zIndex.drawer + 1,
-            backgroundColor: '#3b82f6', // Azul más vibrante
-            backdropFilter: 'blur(10px)',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-            color: 'white',
-          }}
-        >
-          <Toolbar>
-            <IconButton
-              color="inherit"
-              aria-label="open drawer"
-              edge="start"
-              onClick={handleDrawerToggle}
-              sx={{
-                mr: 2,
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                '&:hover': {
-                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                },
-              }}
-            >
-              <Menu />
-            </IconButton>
-            
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexGrow: 1 }}>
-              <img 
-                src="https://raw.githubusercontent.com/I-am-Soma/unicorn-landing/main/logo%20transparente.png"
-                alt="Unicorn AI"
-                style={{ width: 32, height: 32 }}
-              />
-              <Typography variant="h6" sx={{ fontWeight: 600, color: 'white' }}>
-                Unicorn AI
-              </Typography>
-            </Box>
-
-            {/* Mobile top bar actions */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <IconButton
-                color="inherit"
-                size="small"
-                sx={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.2)' },
-                }}
-              >
-                <Notifications fontSize="small" />
-              </IconButton>
-              <IconButton
-                color="inherit"
-                size="small"
-                sx={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.2)' },
-                }}
-              >
-                <AccountCircle fontSize="small" />
-              </IconButton>
-            </Box>
-          </Toolbar>
-        </AppBar>
-      )}
-
-      {/* Sidebar */}
+  const drawerContent = (
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      {/* Logo Section */}
       <Box
-        component="nav"
-        sx={{ 
-          width: { md: drawerWidth }, 
-          flexShrink: { md: 0 } 
+        sx={{
+          p: 3,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2,
+          borderBottom: '1px solid',
+          borderColor: 'divider',
         }}
       >
-        {isMobile ? (
-          // Mobile: Drawer temporal que se superpone (colapsado por defecto)
-          <Sidebar
-            open={mobileDrawerOpen}
-            onClose={handleDrawerClose}
-            variant="temporary"
-          />
-        ) : (
-          // Desktop: Sidebar permanente y visible
-          <Sidebar
-            open={true}
-            onClose={() => {}}
-            variant="permanent"
-          />
-        )}
+        <img
+          src="https://raw.githubusercontent.com/I-am-Soma/unicorn-landing/main/logo%20transparente.png"
+          alt="Unicorn AI"
+          style={{ width: 40, height: 40 }}
+        />
+        <Typography
+          variant="h6"
+          sx={{
+            fontWeight: 700,
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+          }}
+        >
+          Unicorn AI
+        </Typography>
       </Box>
 
-      {/* Main content area */}
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          width: { 
-            xs: '100%', 
-            md: `calc(100% - ${drawerWidth}px)` 
-          },
-          minHeight: '100vh',
-          backgroundColor: '#f8fafc',
-        }}
-      >
-        {/* Content wrapper */}
-        <Box
-          sx={{
-            pt: isMobile ? 9 : 3, // Espacio para AppBar en mobile
-            pb: 3,
-            px: { xs: 2, sm: 3, md: 4 },
-            maxWidth: '100%',
-          }}
-        >
-          <Fade in timeout={300}>
-            <Box sx={{ minHeight: 'calc(100vh - 120px)' }}>
-              {children}
-            </Box>
-          </Fade>
-        </Box>
+      {/* Navigation Items */}
+      <List sx={{ flexGrow: 1, pt: 2, px: 2 }}>
+        {navItems.map((item) => {
+          const isActive = location.pathname === item.path;
+
+          return (
+            <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
+              <ListItemButton
+                onClick={() => handleNavigation(item.path)}
+                selected={isActive}
+                sx={{
+                  borderRadius: 2,
+                  py: 1.5,
+                  '&.Mui-selected': {
+                    bgcolor: 'primary.main',
+                    color: 'white',
+                    '&:hover': {
+                      bgcolor: 'primary.dark',
+                    },
+                    '& .MuiListItemIcon-root': {
+                      color: 'white',
+                    },
+                  },
+                  '&:hover': {
+                    bgcolor: isActive ? 'primary.main' : 'action.hover',
+                  },
+                }}
+              >
+                <ListItemIcon
+                  sx={{
+                    minWidth: 40,
+                    color: isActive ? 'white' : 'text.secondary',
+                  }}
+                >
+                  {/* Mostrar badge si hay notificaciones y el item lo requiere */}
+                  {item.showBadge && unreadCount > 0 ? (
+                    <Badge 
+                      badgeContent={unreadCount} 
+                      color="error"
+                      max={99}
+                      sx={{
+                        '& .MuiBadge-badge': {
+                          right: -3,
+                          top: -3,
+                          fontSize: '0.65rem',
+                          height: 18,
+                          minWidth: 18,
+                          padding: '0 4px',
+                        },
+                      }}
+                    >
+                      {item.icon}
+                    </Badge>
+                  ) : (
+                    item.icon
+                  )}
+                </ListItemIcon>
+                <ListItemText
+                  primary={item.text}
+                  primaryTypographyProps={{
+                    fontSize: '0.875rem',
+                    fontWeight: isActive ? 600 : 500,
+                  }}
+                />
+              </ListItemButton>
+            </ListItem>
+          );
+        })}
+      </List>
+
+      {/* Footer */}
+      <Box sx={{ p: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+          Version 1.0.0
+        </Typography>
+        <Typography variant="caption" color="text.secondary">
+          © 2026 Unicorn AI
+        </Typography>
       </Box>
     </Box>
   );
+
+  return (
+    <Drawer
+      variant={variant}
+      open={open}
+      onClose={onClose}
+      ModalProps={{
+        keepMounted: true, // Better performance on mobile
+      }}
+      sx={{
+        width: drawerWidth,
+        flexShrink: 0,
+        '& .MuiDrawer-paper': {
+          width: drawerWidth,
+          boxSizing: 'border-box',
+          borderRight: variant === 'permanent' ? '1px solid' : 'none',
+          borderColor: 'divider',
+          boxShadow: variant === 'temporary' ? 3 : 0,
+        },
+      }}
+    >
+      {drawerContent}
+    </Drawer>
+  );
 };
 
-export default MainLayout;
+export default Sidebar;
