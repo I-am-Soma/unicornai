@@ -35,6 +35,8 @@ import {
   Notifications as NotificationsIcon,
   Sync as SyncIcon,
   Edit as EditIcon,
+  Delete as DeleteIcon,
+  PhotoCamera as PhotoCameraIcon,
   WhatsApp as WhatsAppIcon,
   Code as ZapierIcon,
   CreditCard as StripeIcon,
@@ -89,6 +91,8 @@ const Settings: React.FC = () => {
   // User data
   const [userId, setUserId] = useState<string>('');
   const [clientId, setClientId] = useState<string>('');
+  const [avatarUrl, setAvatarUrl] = useState<string>('');
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [userProfile, setUserProfile] = useState({
     email: '',
     first_name: '',
@@ -97,6 +101,7 @@ const Settings: React.FC = () => {
     job_title: '',
     company: '',
     timezone: '',
+    avatar_url: '',
   });
 
   // Password form
@@ -170,7 +175,13 @@ const Settings: React.FC = () => {
         job_title: userData.job_title || '',
         company: userData.company || '',
         timezone: userData.timezone || '(UTC-05:00) Eastern Time (US & Canada)',
+        avatar_url: userData.avatar_url || '',
       });
+
+      // Set avatar URL
+      if (userData.avatar_url) {
+        setAvatarUrl(userData.avatar_url);
+      }
 
       // Load notification settings (user-specific)
       if (userData.notification_settings) {
@@ -226,6 +237,7 @@ const Settings: React.FC = () => {
           job_title: userProfile.job_title,
           company: userProfile.company,
           timezone: userProfile.timezone,
+          avatar_url: avatarUrl,
         })
         .eq('id', userId);
 
@@ -236,6 +248,90 @@ const Settings: React.FC = () => {
       setShowSuccess(true);
     } catch (err: any) {
       console.error('❌ Error saving profile:', err);
+      setError(err.message);
+    }
+  };
+
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setError('Please upload an image file');
+        return;
+      }
+
+      // Validate file size (max 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        setError('Image must be less than 2MB');
+        return;
+      }
+
+      setUploadingAvatar(true);
+      console.log('📤 Uploading avatar...');
+
+      // Generate unique filename
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${userId}-${Date.now()}.${fileExt}`;
+      const filePath = `avatars/${fileName}`;
+
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('user-avatars')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('user-avatars')
+        .getPublicUrl(filePath);
+
+      console.log('✅ Avatar uploaded:', publicUrl);
+
+      // Update avatar URL in state
+      setAvatarUrl(publicUrl);
+
+      // Update in database
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ avatar_url: publicUrl })
+        .eq('id', userId);
+
+      if (updateError) throw updateError;
+
+      setSuccessMessage('Profile picture updated successfully');
+      setShowSuccess(true);
+    } catch (err: any) {
+      console.error('❌ Error uploading avatar:', err);
+      setError(err.message || 'Failed to upload image');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    try {
+      console.log('🗑️ Removing avatar...');
+
+      // Update database
+      const { error } = await supabase
+        .from('users')
+        .update({ avatar_url: null })
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      setAvatarUrl('');
+      setSuccessMessage('Profile picture removed');
+      setShowSuccess(true);
+    } catch (err: any) {
+      console.error('❌ Error removing avatar:', err);
       setError(err.message);
     }
   };
@@ -440,17 +536,77 @@ const Settings: React.FC = () => {
         <TabPanel value={tabValue} index={0}>
           <Grid container spacing={3}>
             <Grid item xs={12} md={4} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <Avatar
-                sx={{
-                  width: 120,
-                  height: 120,
-                  mb: 2,
-                  bgcolor: 'primary.main',
-                  fontSize: '3rem',
-                }}
-              >
-                {userProfile.first_name?.[0] || userProfile.email?.[0]?.toUpperCase() || 'U'}
-              </Avatar>
+              <Box sx={{ position: 'relative', mb: 2 }}>
+                <Avatar
+                  src={avatarUrl}
+                  sx={{
+                    width: 120,
+                    height: 120,
+                    bgcolor: 'primary.main',
+                    fontSize: '3rem',
+                  }}
+                >
+                  {!avatarUrl && (userProfile.first_name?.[0] || userProfile.email?.[0]?.toUpperCase() || 'U')}
+                </Avatar>
+                
+                {uploadingAvatar && (
+                  <CircularProgress
+                    size={120}
+                    sx={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                    }}
+                  />
+                )}
+
+                {/* Upload button */}
+                <input
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  id="avatar-upload"
+                  type="file"
+                  onChange={handleAvatarUpload}
+                  disabled={uploadingAvatar}
+                />
+                <label htmlFor="avatar-upload">
+                  <IconButton
+                    component="span"
+                    color="primary"
+                    disabled={uploadingAvatar}
+                    sx={{
+                      position: 'absolute',
+                      bottom: 0,
+                      right: 0,
+                      bgcolor: 'white',
+                      boxShadow: 2,
+                      '&:hover': { bgcolor: 'grey.100' }
+                    }}
+                  >
+                    <PhotoCameraIcon />
+                  </IconButton>
+                </label>
+
+                {/* Remove button */}
+                {avatarUrl && (
+                  <IconButton
+                    onClick={handleRemoveAvatar}
+                    color="error"
+                    size="small"
+                    sx={{
+                      position: 'absolute',
+                      top: 0,
+                      right: 0,
+                      bgcolor: 'white',
+                      boxShadow: 2,
+                      '&:hover': { bgcolor: 'grey.100' }
+                    }}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                )}
+              </Box>
+
               <Typography variant="h6">
                 {userProfile.first_name} {userProfile.last_name}
               </Typography>
