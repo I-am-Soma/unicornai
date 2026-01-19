@@ -71,7 +71,10 @@ const LeadSearch: React.FC = () => {
   };
 
   return (
-    <Paper sx={{ p: 3, mb: 3 }}>
+    <Paper 
+      sx={{ p: 3, mb: 3 }}
+      data-tour="search-leads"
+    >
       <Box sx={{ mb: 3 }}>
         <h2 style={{ margin: 0 }}>Search & Import Leads</h2>
       </Box>
