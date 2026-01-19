@@ -47,8 +47,10 @@ import {
   FilterList as FilterIcon,
   Send as SendIcon,
   Schedule as ScheduleIcon,
+  Help as HelpIcon,
 } from '@mui/icons-material';
 import supabase from '../utils/supabaseClient';
+import { RestartTourButton } from '../components/OnboardingTour';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -143,7 +145,7 @@ const Settings: React.FC = () => {
   const loadUserSettings = async () => {
     try {
       setLoading(true);
-      console.log('🔄 Loading user settings...');
+      console.log('📄 Loading user settings...');
 
       // Get current session
       const { data: { session } } = await supabase.auth.getSession();
@@ -695,6 +697,38 @@ const Settings: React.FC = () => {
                   >
                     Save Changes
                   </Button>
+                </Grid>
+
+                {/* NUEVO: Card del Tutorial Interactivo */}
+                <Grid item xs={12}>
+                  <Card elevation={2} sx={{ mt: 2 }}>
+                    <CardContent>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                        <Box
+                          sx={{
+                            width: 48,
+                            height: 48,
+                            borderRadius: 2,
+                            bgcolor: 'primary.light',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <HelpIcon sx={{ color: 'white', fontSize: 28 }} />
+                        </Box>
+                        <Box>
+                          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                            Tutorial Interactivo
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            ¿Necesitas un repaso? Vuelve a ver el tour de bienvenida
+                          </Typography>
+                        </Box>
+                      </Box>
+                      <RestartTourButton />
+                    </CardContent>
+                  </Card>
                 </Grid>
               </Grid>
             </Grid>
