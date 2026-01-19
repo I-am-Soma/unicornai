@@ -25,7 +25,7 @@ import {
   ChevronLeft,
 } from '@mui/icons-material';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { AuthContext } from './AuthGuard'; // Ajusta la ruta según tu estructura
+import { AuthContext } from './AuthGuard';
 
 const unicornLogo = 'https://raw.githubusercontent.com/I-am-Soma/unicorn-landing/main/logo%20transparente.png';
 const drawerWidth = 240;
@@ -38,14 +38,51 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
   const { logout } = useContext(AuthContext);
   
   const menuItems = [
-    { text: 'Dashboard', icon: <Dashboard />, path: '/' },
-    { text: 'Campaigns', icon: <Campaign />, path: '/campaigns' },
-    { text: 'Lead Management', icon: <FilterList />, path: '/leads' },
-    { text: 'Conversations', icon: <Message />, path: '/conversations' },
-    { text: 'Reports & Analytics', icon: <Assessment />, path: '/reports' },
-    { text: 'Settings', icon: <Settings />, path: '/settings' },
-    { text: 'Clients', icon: <PeopleOutline />, path: '/clients' },
-    { text: 'Help Center', icon: <Help />, path: '/help' },
+    { 
+      text: 'Dashboard', 
+      icon: <Dashboard />, 
+      path: '/',
+      tourId: 'dashboard' // ← Agregar tourId
+    },
+    { 
+      text: 'Campaigns', 
+      icon: <Campaign />, 
+      path: '/campaigns' 
+    },
+    { 
+      text: 'Lead Management', 
+      icon: <FilterList />, 
+      path: '/leads',
+      tourId: 'leads' // ← Agregar tourId
+    },
+    { 
+      text: 'Conversations', 
+      icon: <Message />, 
+      path: '/conversations',
+      tourId: 'conversations' // ← Agregar tourId
+    },
+    { 
+      text: 'Reports & Analytics', 
+      icon: <Assessment />, 
+      path: '/reports',
+      tourId: 'reports' // ← Agregar tourId
+    },
+    { 
+      text: 'Settings', 
+      icon: <Settings />, 
+      path: '/settings',
+      tourId: 'settings' // ← Agregar tourId
+    },
+    { 
+      text: 'Clients', 
+      icon: <PeopleOutline />, 
+      path: '/clients' 
+    },
+    { 
+      text: 'Help Center', 
+      icon: <Help />, 
+      path: '/help' 
+    },
   ];
 
   const handleLogout = async () => {
@@ -59,7 +96,6 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
   };
 
   const handleItemClick = () => {
-    // En mobile, cerrar el drawer después de hacer clic
     if (isMobile && onClose) {
       onClose();
     }
@@ -73,7 +109,7 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
       backgroundColor: '#1e293b',
       color: 'white',
     }}>
-      {/* Header con solo el logo centrado - como el diseño original */}
+      {/* Header con solo el logo centrado */}
       <Box sx={{ 
         p: 2, 
         display: 'flex', 
@@ -93,7 +129,6 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
           }}
         />
         
-        {/* Solo mostrar botón de cerrar en mobile */}
         {isMobile && (
           <IconButton
             onClick={onClose}
@@ -112,12 +147,17 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
 
       <Divider sx={{ backgroundColor: 'rgba(255, 255, 255, 0.1)', mb: 1 }} />
 
-      {/* Navigation menu - manteniendo el estilo original */}
+      {/* Navigation menu */}
       <List>
         {menuItems.map((item) => {
           const isActive = location.pathname === item.path;
           return (
-            <ListItem key={item.text} disablePadding>
+            <ListItem 
+              key={item.text} 
+              disablePadding
+              // ✅ AGREGAR data-tour attribute aquí
+              data-tour={item.tourId}
+            >
               <ListItemButton
                 component={Link}
                 to={item.path}
@@ -143,7 +183,7 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
 
       <Divider sx={{ backgroundColor: 'rgba(255, 255, 255, 0.1)', mt: 1 }} />
 
-      {/* Logout button - manteniendo el estilo original */}
+      {/* Logout button */}
       <Box sx={{ mt: 'auto', mb: 2, px: 2 }}>
         <ListItemButton 
           onClick={handleLogout}
@@ -170,7 +210,6 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
       onClose={onClose}
       ModalProps={{ 
         keepMounted: true,
-        // En mobile, cerrar al hacer click fuera
         onBackdropClick: isMobile ? onClose : undefined,
       }}
       sx={{
