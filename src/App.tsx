@@ -5,7 +5,25 @@ import {
   createTheme,
   CssBaseline,
   Box,
+  useMediaQuery,
+  BottomNavigation,
+  BottomNavigationAction,
+  Paper,
+  SpeedDial,
+  SpeedDialAction,
+  SpeedDialIcon,
 } from '@mui/material';
+import {
+  Dashboard as DashboardIcon,
+  People as PeopleIcon,
+  Chat as ChatIcon,
+  Assessment as ReportsIcon,
+  Settings as SettingsIcon,
+  PersonAdd as PersonAddIcon,
+  Campaign as CampaignIcon,
+  Refresh as RefreshIcon,
+} from '@mui/icons-material';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 // Providers
 import { AuthProvider } from './context/AuthContext';
@@ -55,8 +73,177 @@ const theme = createTheme({
   shape: {
     borderRadius: 8,
   },
+  breakpoints: {
+    values: {
+      xs: 0,
+      sm: 600,
+      md: 960,
+      lg: 1280,
+      xl: 1920,
+    },
+  },
 });
 
+// ============================================================================
+// MOBILE BOTTOM NAVIGATION COMPONENT
+// ============================================================================
+const MobileBottomNav: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const getCurrentValue = () => {
+    const path = location.pathname;
+    if (path === '/' || path === '/dashboard') return 0;
+    if (path === '/leads') return 1;
+    if (path === '/conversations') return 2;
+    if (path === '/reports') return 3;
+    if (path === '/settings') return 4;
+    return 0;
+  };
+
+  const [value, setValue] = useState(getCurrentValue());
+
+  useEffect(() => {
+    setValue(getCurrentValue());
+  }, [location.pathname]);
+
+  const handleChange = (_event: React.SyntheticEvent, newValue: number) => {
+    setValue(newValue);
+    const routes = ['/', '/leads', '/conversations', '/reports', '/settings'];
+    navigate(routes[newValue]);
+  };
+
+  return (
+    <Paper
+      sx={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 1100,
+        borderTop: 1,
+        borderColor: 'divider',
+      }}
+      elevation={8}
+    >
+      <BottomNavigation
+        value={value}
+        onChange={handleChange}
+        showLabels
+        sx={{
+          height: 64,
+          '& .MuiBottomNavigationAction-root': {
+            minWidth: 60,
+            padding: '6px 12px 8px',
+          },
+          '& .MuiBottomNavigationAction-label': {
+            fontSize: '0.75rem',
+            marginTop: '4px',
+          },
+        }}
+      >
+        <BottomNavigationAction
+          label="Dashboard"
+          icon={<DashboardIcon />}
+          sx={{ minHeight: 44, minWidth: 44 }}
+        />
+        <BottomNavigationAction
+          label="Leads"
+          icon={<PeopleIcon />}
+          sx={{ minHeight: 44, minWidth: 44 }}
+        />
+        <BottomNavigationAction
+          label="Chat"
+          icon={<ChatIcon />}
+          sx={{ minHeight: 44, minWidth: 44 }}
+        />
+        <BottomNavigationAction
+          label="Reports"
+          icon={<ReportsIcon />}
+          sx={{ minHeight: 44, minWidth: 44 }}
+        />
+        <BottomNavigationAction
+          label="Settings"
+          icon={<SettingsIcon />}
+          sx={{ minHeight: 44, minWidth: 44 }}
+        />
+      </BottomNavigation>
+    </Paper>
+  );
+};
+
+// ============================================================================
+// MOBILE FAB COMPONENT
+// ============================================================================
+const MobileFAB: React.FC = () => {
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+
+  const actions = [
+    {
+      icon: <PersonAddIcon />,
+      name: 'Add Lead',
+      onClick: () => {
+        navigate('/leads');
+        setOpen(false);
+      },
+    },
+    {
+      icon: <CampaignIcon />,
+      name: 'New Campaign',
+      onClick: () => {
+        navigate('/campaigns');
+        setOpen(false);
+      },
+    },
+    {
+      icon: <RefreshIcon />,
+      name: 'Refresh',
+      onClick: () => {
+        window.location.reload();
+        setOpen(false);
+      },
+    },
+  ];
+
+  return (
+    <SpeedDial
+      ariaLabel="Quick actions"
+      sx={{
+        position: 'fixed',
+        bottom: 80,
+        right: 16,
+        '& .MuiFab-primary': {
+          width: 56,
+          height: 56,
+        },
+      }}
+      icon={<SpeedDialIcon />}
+      open={open}
+      onOpen={() => setOpen(true)}
+      onClose={() => setOpen(false)}
+    >
+      {actions.map((action) => (
+        <SpeedDialAction
+          key={action.name}
+          icon={action.icon}
+          tooltipTitle={action.name}
+          onClick={action.onClick}
+          sx={{
+            '& .MuiSpeedDialAction-fab': {
+              minHeight: 44,
+              minWidth: 44,
+            },
+          }}
+        />
+      ))}
+    </SpeedDial>
+  );
+};
+
+// ============================================================================
+// MAIN APP
+// ============================================================================
 function App() {
   const [selectedPeriod, setSelectedPeriod] = useState<Period>('monthly');
   const [places, setPlaces] = useState<any[]>([]);
@@ -117,47 +304,19 @@ function App() {
           <PlacesContext.Provider value={places}>
             <OnboardingProvider>
               <Routes>
-                {/* Public */}
+                {/* Public Routes */}
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
 
-                {/* Protected */}
+                {/* Protected Routes */}
                 <Route
                   path="/*"
                   element={
                     <AuthGuard>
-                      <Box sx={{ display: 'flex' }}>
-                        <Sidebar />
-                        <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-                          <Header onPeriodChange={handlePeriodChange} />
-
-                          <Box
-                            component="main"
-                            sx={{
-                              flexGrow: 1,
-                              height: '100vh',
-                              overflow: 'auto',
-                              mt: 8,
-                              backgroundColor: theme.palette.background.default,
-                            }}
-                          >
-                            <Routes>
-                              <Route
-                                path="/"
-                                element={<Dashboard period={selectedPeriod} />}
-                              />
-                              <Route path="/leads" element={<LeadsList />} />
-                              <Route path="/campaigns" element={<Campaigns />} />
-                              <Route path="/conversations" element={<Conversations />} />
-                              <Route path="/reports" element={<ReportsAnalytics />} />
-                              <Route path="/settings" element={<Settings />} />
-                              <Route path="/clients" element={<ClientsConfig />} />
-                              <Route path="/help" element={<HelpCenter />} />
-                              <Route path="*" element={<Navigate to="/" replace />} />
-                            </Routes>
-                          </Box>
-                        </Box>
-                      </Box>
+                      <ResponsiveLayout
+                        selectedPeriod={selectedPeriod}
+                        onPeriodChange={handlePeriodChange}
+                      />
                     </AuthGuard>
                   }
                 />
@@ -169,5 +328,100 @@ function App() {
     </ThemeProvider>
   );
 }
+
+// ============================================================================
+// RESPONSIVE LAYOUT COMPONENT
+// ============================================================================
+interface ResponsiveLayoutProps {
+  selectedPeriod: Period;
+  onPeriodChange: (period: Period) => void;
+}
+
+const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({
+  selectedPeriod,
+  onPeriodChange,
+}) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  useEffect(() => {
+    console.log('📱 Is Mobile?', isMobile);
+    console.log('🖥️ Window width:', window.innerWidth);
+  }, [isMobile]);
+
+  return (
+    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+      {/* DESKTOP: Sidebar + Header */}
+      {!isMobile && (
+        <>
+          <Sidebar />
+          <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+            <Header onPeriodChange={onPeriodChange} />
+            <Box
+              component="main"
+              sx={{
+                flexGrow: 1,
+                height: '100vh',
+                overflow: 'auto',
+                mt: 8,
+                backgroundColor: theme.palette.background.default,
+              }}
+            >
+              <Routes>
+                <Route path="/" element={<Dashboard period={selectedPeriod} />} />
+                <Route path="/leads" element={<LeadsList />} />
+                <Route path="/campaigns" element={<Campaigns />} />
+                <Route path="/conversations" element={<Conversations />} />
+                <Route path="/reports" element={<ReportsAnalytics />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/clients" element={<ClientsConfig />} />
+                <Route path="/help" element={<HelpCenter />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Box>
+          </Box>
+        </>
+      )}
+
+      {/* MOBILE: Sin Sidebar ni Header, con Bottom Nav */}
+      {isMobile && (
+        <Box
+          sx={{
+            flexGrow: 1,
+            width: '100%',
+            backgroundColor: theme.palette.background.default,
+            pb: '64px', // Espacio para bottom navigation
+          }}
+        >
+          <Box
+            component="main"
+            sx={{
+              minHeight: '100vh',
+              overflow: 'auto',
+            }}
+          >
+            <Routes>
+              <Route path="/" element={<Dashboard period={selectedPeriod} />} />
+              <Route path="/leads" element={<LeadsList />} />
+              <Route path="/campaigns" element={<Campaigns />} />
+              <Route path="/conversations" element={<Conversations />} />
+              <Route path="/reports" element={<ReportsAnalytics />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/clients" element={<ClientsConfig />} />
+              <Route path="/help" element={<HelpCenter />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Box>
+
+          {/* Mobile Bottom Navigation */}
+          <MobileBottomNav />
+
+          {/* Mobile FAB */}
+          <MobileFAB />
+        </Box>
+      )}
+    </Box>
+  );
+};
 
 export default App;
