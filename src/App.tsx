@@ -347,11 +347,14 @@ const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({
   useEffect(() => {
     console.log('📱 Is Mobile?', isMobile);
     console.log('🖥️ Window width:', window.innerWidth);
-  }, [isMobile]);
+    console.log('🗺️ Current location:', location.pathname);
+  }, [isMobile, location]);
 
   // Renderizar el componente correcto según la ruta
   const renderPage = () => {
     const path = location.pathname;
+    
+    console.log('🎯 Rendering page for path:', path);
     
     if (path === '/' || path === '/dashboard') {
       return <Dashboard period={selectedPeriod} />;
@@ -364,8 +367,11 @@ const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({
     if (path === '/clients') return <ClientsConfig />;
     if (path === '/help') return <HelpCenter />;
     
+    console.log('⚠️ No match found, redirecting to /');
     return <Navigate to="/" replace />;
   };
+
+  console.log('🎨 ResponsiveLayout rendering...');
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
