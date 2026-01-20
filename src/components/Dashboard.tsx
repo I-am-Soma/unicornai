@@ -1,5 +1,21 @@
 import React, { useEffect, useState } from "react";
-import { Box, Grid, Paper, Typography, CircularProgress, Button, Alert } from "@mui/material";
+import {
+  Box,
+  Grid,
+  Paper,
+  Typography,
+  CircularProgress,
+  Button,
+  Alert,
+  useMediaQuery,
+  useTheme,
+  Card,
+  CardContent,
+  Fab,
+  SpeedDial,
+  SpeedDialAction,
+  SpeedDialIcon,
+} from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import StatCard from "./StatCard";
 import {
@@ -16,7 +32,16 @@ import {
 } from "chart.js";
 import { Line, Doughnut } from "react-chartjs-2";
 import { Period } from "./Header";
-import { Add as AddIcon, Refresh as RefreshIcon } from "@mui/icons-material";
+import {
+  Add as AddIcon,
+  Refresh as RefreshIcon,
+  PersonAdd as PersonAddIcon,
+  Campaign as CampaignIcon,
+  VoiceChat as VoiceIcon,
+  TrendingUp as TrendingUpIcon,
+  Group as GroupIcon,
+  Message as MessageIcon,
+} from "@mui/icons-material";
 import supabase from '../utils/supabaseClient';
 import { fetchLeads, fetchCampaigns, fetchConversations } from '../api/leadsApi';
 
@@ -43,7 +68,11 @@ const Dashboard: React.FC<DashboardProps> = ({ period }) => {
   const [leads, setLeads] = useState<any[]>([]);
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [conversations, setConversations] = useState<any[]>([]);
+  const [fabOpen, setFabOpen] = useState(false);
+  
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   useEffect(() => {
     loadDashboardData();
@@ -239,6 +268,34 @@ const Dashboard: React.FC<DashboardProps> = ({ period }) => {
     };
   };
 
+  // Quick actions for mobile FAB
+  const fabActions = [
+    {
+      icon: <PersonAddIcon />,
+      name: 'Add Lead',
+      onClick: () => {
+        setFabOpen(false);
+        navigate('/leads');
+      },
+    },
+    {
+      icon: <CampaignIcon />,
+      name: 'New Campaign',
+      onClick: () => {
+        setFabOpen(false);
+        navigate('/campaigns');
+      },
+    },
+    {
+      icon: <RefreshIcon />,
+      name: 'Refresh Data',
+      onClick: () => {
+        setFabOpen(false);
+        loadDashboardData();
+      },
+    },
+  ];
+
   if (loading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "70vh" }}>
@@ -248,28 +305,56 @@ const Dashboard: React.FC<DashboardProps> = ({ period }) => {
   }
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
-        <Typography variant="h5" sx={{ fontWeight: 600 }}>Dashboard Overview</Typography>
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button
-            variant="outlined"
-            startIcon={<RefreshIcon />}
-            onClick={loadDashboardData}
-            size="small"
-          >
-            Refresh
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => navigate("/campaigns")}
-            size="small"
-          >
-            Create Campaign
-          </Button>
+    <Box 
+      sx={{ 
+        p: isMobile ? 2 : 3,
+        pb: isMobile ? 10 : 3, // Extra padding bottom para mobile nav
+      }}
+      data-tour="dashboard"
+    >
+      {/* Header - Desktop */}
+      {!isMobile && (
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+          <Typography variant="h5" sx={{ fontWeight: 600 }}>Dashboard Overview</Typography>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Button
+              variant="outlined"
+              startIcon={<RefreshIcon />}
+              onClick={loadDashboardData}
+              size="small"
+              sx={{ minHeight: 44 }}
+            >
+              Refresh
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => navigate("/campaigns")}
+              size="small"
+              sx={{ minHeight: 44 }}
+            >
+              Create Campaign
+            </Button>
+          </Box>
         </Box>
-      </Box>
+      )}
+
+      {/* Header - Mobile */}
+      {isMobile && (
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>
+            Dashboard
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {new Date().toLocaleDateString('en-US', { 
+              weekday: 'long', 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            })}
+          </Typography>
+        </Box>
+      )}
 
       {error && (
         <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
@@ -277,38 +362,151 @@ const Dashboard: React.FC<DashboardProps> = ({ period }) => {
         </Alert>
       )}
 
-      {/* Lead Metrics */}
-      <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
-        Lead Metrics
-      </Typography>
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        {leadStats.map((stat, index) => (
-          <Grid item xs={12} sm={6} md={3} key={index}>
-            <StatCard {...stat} />
-          </Grid>
-        ))}
-      </Grid>
+      {/* Mobile: Summary Cards Carousel */}
+      {isMobile && (
+        <Box sx={{ mb: 3 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              overflowX: 'auto',
+              gap: 2,
+              pb: 2,
+              '&::-webkit-scrollbar': {
+                height: 6,
+              },
+              '&::-webkit-scrollbar-thumb': {
+                backgroundColor: 'rgba(0,0,0,0.2)',
+                borderRadius: 3,
+              },
+            }}
+          >
+            <Card
+              sx={{
+                minWidth: 280,
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+              }}
+            >
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <GroupIcon sx={{ fontSize: 40, mr: 2 }} />
+                  <Box>
+                    <Typography variant="h3" sx={{ fontWeight: 'bold' }}>
+                      {metrics.totalLeads}
+                    </Typography>
+                    <Typography variant="body2">Total Leads</Typography>
+                  </Box>
+                </Box>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Box sx={{ bgcolor: 'rgba(255,255,255,0.2)', px: 1.5, py: 0.5, borderRadius: 1 }}>
+                    <Typography variant="caption">New: {metrics.newLeads}</Typography>
+                  </Box>
+                  <Box sx={{ bgcolor: 'rgba(255,255,255,0.2)', px: 1.5, py: 0.5, borderRadius: 1 }}>
+                    <Typography variant="caption">Rate: {metrics.conversionRate}</Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
 
-      {/* Campaign Metrics */}
-      <Typography variant="h6" gutterBottom sx={{ mb: 2, mt: 4 }}>
-        Campaign & Conversation Metrics
-      </Typography>
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        {campaignStats.map((stat, index) => (
-          <Grid item xs={12} sm={6} md={3} key={index}>
-            <StatCard {...stat} />
-          </Grid>
-        ))}
-      </Grid>
+            <Card
+              sx={{
+                minWidth: 280,
+                background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                color: 'white',
+              }}
+            >
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <MessageIcon sx={{ fontSize: 40, mr: 2 }} />
+                  <Box>
+                    <Typography variant="h3" sx={{ fontWeight: 'bold' }}>
+                      {conversations.length}
+                    </Typography>
+                    <Typography variant="body2">Active Chats</Typography>
+                  </Box>
+                </Box>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Box sx={{ bgcolor: 'rgba(255,255,255,0.2)', px: 1.5, py: 0.5, borderRadius: 1 }}>
+                    <Typography variant="caption">Campaigns: {campaigns.length}</Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
 
-      {/* Charts */}
-      <Grid container spacing={3}>
+            <Card
+              sx={{
+                minWidth: 280,
+                background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                color: 'white',
+              }}
+            >
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <TrendingUpIcon sx={{ fontSize: 40, mr: 2 }} />
+                  <Box>
+                    <Typography variant="h3" sx={{ fontWeight: 'bold' }}>
+                      {metrics.conversionRate}
+                    </Typography>
+                    <Typography variant="body2">Conversion Rate</Typography>
+                  </Box>
+                </Box>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Box sx={{ bgcolor: 'rgba(255,255,255,0.2)', px: 1.5, py: 0.5, borderRadius: 1 }}>
+                    <Typography variant="caption">Closed: {metrics.closedLeads}</Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Box>
+        </Box>
+      )}
+
+      {/* Desktop: Lead Metrics Grid */}
+      {!isMobile && (
+        <>
+          <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
+            Lead Metrics
+          </Typography>
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            {leadStats.map((stat, index) => (
+              <Grid item xs={12} sm={6} md={3} key={index}>
+                <StatCard {...stat} />
+              </Grid>
+            ))}
+          </Grid>
+        </>
+      )}
+
+      {/* Desktop: Campaign Metrics */}
+      {!isMobile && (
+        <>
+          <Typography variant="h6" gutterBottom sx={{ mb: 2, mt: 4 }}>
+            Campaign & Conversation Metrics
+          </Typography>
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            {campaignStats.map((stat, index) => (
+              <Grid item xs={12} sm={6} md={3} key={index}>
+                <StatCard {...stat} />
+              </Grid>
+            ))}
+          </Grid>
+        </>
+      )}
+
+      {/* Charts - Responsive */}
+      <Grid container spacing={isMobile ? 2 : 3}>
         <Grid item xs={12} md={8}>
-          <Paper sx={{ p: 2 }} elevation={3}>
-            <Typography variant="h6" gutterBottom>
+          <Paper 
+            sx={{ 
+              p: isMobile ? 2 : 3,
+              borderRadius: isMobile ? 3 : 2,
+            }} 
+            elevation={3}
+          >
+            <Typography variant="h6" gutterBottom sx={{ fontSize: isMobile ? '1rem' : '1.25rem' }}>
               Lead Acquisition Trends
             </Typography>
-            <Box sx={{ height: 300 }}>
+            <Box sx={{ height: isMobile ? 250 : 300 }}>
               <Line
                 data={getLeadTrendsData()}
                 options={{
@@ -317,6 +515,11 @@ const Dashboard: React.FC<DashboardProps> = ({ period }) => {
                   plugins: {
                     legend: {
                       position: "top",
+                      labels: {
+                        font: {
+                          size: isMobile ? 10 : 12,
+                        },
+                      },
                     },
                   },
                   scales: {
@@ -324,10 +527,20 @@ const Dashboard: React.FC<DashboardProps> = ({ period }) => {
                       beginAtZero: true,
                       ticks: {
                         precision: 0,
+                        font: {
+                          size: isMobile ? 10 : 12,
+                        },
                       },
                       title: {
-                        display: true,
+                        display: !isMobile,
                         text: "Number of Leads",
+                      },
+                    },
+                    x: {
+                      ticks: {
+                        font: {
+                          size: isMobile ? 10 : 12,
+                        },
                       },
                     },
                   },
@@ -338,11 +551,17 @@ const Dashboard: React.FC<DashboardProps> = ({ period }) => {
         </Grid>
 
         <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 2 }} elevation={3}>
-            <Typography variant="h6" gutterBottom>
-              Lead Sources Distribution
+          <Paper 
+            sx={{ 
+              p: isMobile ? 2 : 3,
+              borderRadius: isMobile ? 3 : 2,
+            }} 
+            elevation={3}
+          >
+            <Typography variant="h6" gutterBottom sx={{ fontSize: isMobile ? '1rem' : '1.25rem' }}>
+              Lead Sources
             </Typography>
-            <Box sx={{ height: 300 }}>
+            <Box sx={{ height: isMobile ? 250 : 300 }}>
               <Doughnut
                 data={getLeadSourcesData()}
                 options={{
@@ -351,6 +570,12 @@ const Dashboard: React.FC<DashboardProps> = ({ period }) => {
                   plugins: {
                     legend: {
                       position: "bottom",
+                      labels: {
+                        font: {
+                          size: isMobile ? 10 : 12,
+                        },
+                        padding: isMobile ? 8 : 10,
+                      },
                     },
                   },
                 }}
@@ -360,54 +585,91 @@ const Dashboard: React.FC<DashboardProps> = ({ period }) => {
         </Grid>
       </Grid>
 
-      {/* Quick Stats Summary */}
-      <Paper sx={{ p: 3, mt: 3 }} elevation={3}>
-        <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-          Quick Summary
-        </Typography>
-        <Grid container spacing={2} sx={{ mt: 1 }}>
-          <Grid item xs={12} md={3}>
-            <Box sx={{ textAlign: 'center', p: 2, bgcolor: '#f5f5f5', borderRadius: 2 }}>
-              <Typography variant="h4" color="primary" sx={{ fontWeight: 'bold' }}>
-                {metrics.totalLeads}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Total Leads in System
-              </Typography>
-            </Box>
+      {/* Desktop: Quick Stats Summary */}
+      {!isMobile && (
+        <Paper sx={{ p: 3, mt: 3 }} elevation={3}>
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+            Quick Summary
+          </Typography>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12} md={3}>
+              <Box sx={{ textAlign: 'center', p: 2, bgcolor: '#f5f5f5', borderRadius: 2 }}>
+                <Typography variant="h4" color="primary" sx={{ fontWeight: 'bold' }}>
+                  {metrics.totalLeads}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Total Leads in System
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <Box sx={{ textAlign: 'center', p: 2, bgcolor: '#f5f5f5', borderRadius: 2 }}>
+                <Typography variant="h4" color="success.main" sx={{ fontWeight: 'bold' }}>
+                  {conversations.length}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Active Conversations
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <Box sx={{ textAlign: 'center', p: 2, bgcolor: '#f5f5f5', borderRadius: 2 }}>
+                <Typography variant="h4" color="warning.main" sx={{ fontWeight: 'bold' }}>
+                  {metrics.newLeads}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  New Leads Today
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <Box sx={{ textAlign: 'center', p: 2, bgcolor: '#f5f5f5', borderRadius: 2 }}>
+                <Typography variant="h4" color="error.main" sx={{ fontWeight: 'bold' }}>
+                  {metrics.conversionRate}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Conversion Rate
+                </Typography>
+              </Box>
+            </Grid>
           </Grid>
-          <Grid item xs={12} md={3}>
-            <Box sx={{ textAlign: 'center', p: 2, bgcolor: '#f5f5f5', borderRadius: 2 }}>
-              <Typography variant="h4" color="success.main" sx={{ fontWeight: 'bold' }}>
-                {conversations.length}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Active Conversations
-              </Typography>
-            </Box>
-          </Grid>
-          <Grid item xs={12} md={3}>
-            <Box sx={{ textAlign: 'center', p: 2, bgcolor: '#f5f5f5', borderRadius: 2 }}>
-              <Typography variant="h4" color="warning.main" sx={{ fontWeight: 'bold' }}>
-                {metrics.newLeads}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                New Leads Today
-              </Typography>
-            </Box>
-          </Grid>
-          <Grid item xs={12} md={3}>
-            <Box sx={{ textAlign: 'center', p: 2, bgcolor: '#f5f5f5', borderRadius: 2 }}>
-              <Typography variant="h4" color="error.main" sx={{ fontWeight: 'bold' }}>
-                {metrics.conversionRate}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Conversion Rate
-              </Typography>
-            </Box>
-          </Grid>
-        </Grid>
-      </Paper>
+        </Paper>
+      )}
+
+      {/* Mobile: Floating Action Button with Speed Dial */}
+      {isMobile && (
+        <SpeedDial
+          ariaLabel="Quick actions"
+          sx={{
+            position: 'fixed',
+            bottom: 80, // Above bottom navigation
+            right: 16,
+            '& .MuiFab-primary': {
+              width: 56,
+              height: 56,
+            },
+          }}
+          icon={<SpeedDialIcon />}
+          open={fabOpen}
+          onOpen={() => setFabOpen(true)}
+          onClose={() => setFabOpen(false)}
+        >
+          {fabActions.map((action) => (
+            <SpeedDialAction
+              key={action.name}
+              icon={action.icon}
+              tooltipTitle={action.name}
+              onClick={action.onClick}
+              sx={{
+                '& .MuiSpeedDialAction-fab': {
+                  minHeight: 44,
+                  minWidth: 44,
+                },
+              }}
+            />
+          ))}
+        </SpeedDial>
+      )}
     </Box>
   );
 };
