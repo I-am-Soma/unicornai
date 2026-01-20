@@ -1,5 +1,5 @@
 import React, { useEffect, useState, createContext } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import {
   ThemeProvider,
   createTheme,
@@ -23,7 +23,6 @@ import {
   Campaign as CampaignIcon,
   Refresh as RefreshIcon,
 } from '@mui/icons-material';
-import { useNavigate, useLocation } from 'react-router-dom';
 
 // Providers
 import { AuthProvider } from './context/AuthContext';
@@ -343,11 +342,30 @@ const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const location = useLocation();
 
   useEffect(() => {
     console.log('📱 Is Mobile?', isMobile);
     console.log('🖥️ Window width:', window.innerWidth);
   }, [isMobile]);
+
+  // Renderizar el componente correcto según la ruta
+  const renderPage = () => {
+    const path = location.pathname;
+    
+    if (path === '/' || path === '/dashboard') {
+      return <Dashboard period={selectedPeriod} />;
+    }
+    if (path === '/leads') return <LeadsList />;
+    if (path === '/campaigns') return <Campaigns />;
+    if (path === '/conversations') return <Conversations />;
+    if (path === '/reports') return <ReportsAnalytics />;
+    if (path === '/settings') return <Settings />;
+    if (path === '/clients') return <ClientsConfig />;
+    if (path === '/help') return <HelpCenter />;
+    
+    return <Navigate to="/" replace />;
+  };
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
@@ -367,17 +385,7 @@ const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({
                 backgroundColor: theme.palette.background.default,
               }}
             >
-              <Routes>
-                <Route path="/" element={<Dashboard period={selectedPeriod} />} />
-                <Route path="/leads" element={<LeadsList />} />
-                <Route path="/campaigns" element={<Campaigns />} />
-                <Route path="/conversations" element={<Conversations />} />
-                <Route path="/reports" element={<ReportsAnalytics />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/clients" element={<ClientsConfig />} />
-                <Route path="/help" element={<HelpCenter />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
+              {renderPage()}
             </Box>
           </Box>
         </>
@@ -400,17 +408,7 @@ const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({
               overflow: 'auto',
             }}
           >
-            <Routes>
-              <Route path="/" element={<Dashboard period={selectedPeriod} />} />
-              <Route path="/leads" element={<LeadsList />} />
-              <Route path="/campaigns" element={<Campaigns />} />
-              <Route path="/conversations" element={<Conversations />} />
-              <Route path="/reports" element={<ReportsAnalytics />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/clients" element={<ClientsConfig />} />
-              <Route path="/help" element={<HelpCenter />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+            {renderPage()}
           </Box>
 
           {/* Mobile Bottom Navigation */}
