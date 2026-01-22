@@ -1,10 +1,11 @@
-import React, { useEffect, useState, createContext } from 'react';
+import React, { useEffect, useState, createContext, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import {
   ThemeProvider,
   createTheme,
   CssBaseline,
   Box,
+  CircularProgress,
 } from '@mui/material';
 
 // Providers
@@ -16,17 +17,19 @@ import Sidebar from './components/Sidebar';
 import Header, { Period } from './components/Header';
 import AuthGuard from './components/AuthGuard';
 
-// Pages
-import Dashboard from './components/Dashboard';
-import LeadsList from './components/LeadsList';
-import Campaigns from './components/Campaigns';
-import Conversations from './components/Conversations';
-import ReportsAnalytics from './components/ReportsAnalytics';
-import Settings from './components/Settings';
-import ClientsConfig from './components/ClientsConfig';
-import HelpCenter from './components/HelpCenter';
+// Login/Register - NO lazy (necesarios inmediatamente)
 import Login from './components/Login';
 import Register from './components/Register';
+
+// Pages - LAZY LOADING (se cargan cuando se necesitan)
+const Dashboard = lazy(() => import('./components/Dashboard'));
+const LeadsList = lazy(() => import('./components/LeadsList'));
+const Campaigns = lazy(() => import('./components/Campaigns'));
+const Conversations = lazy(() => import('./components/Conversations'));
+const ReportsAnalytics = lazy(() => import('./components/ReportsAnalytics'));
+const Settings = lazy(() => import('./components/Settings'));
+const ClientsConfig = lazy(() => import('./components/ClientsConfig'));
+const HelpCenter = lazy(() => import('./components/HelpCenter'));
 
 // Utils
 import { getStoredLeads, getStoredCampaigns } from './utils/storage';
@@ -67,30 +70,38 @@ function App() {
     console.log('✅ App component mounted');
   }, []);
 
-  // Inicializar leads y campañas demo (NO rompe producción)
+  // Inicializar leads y campañas demo - SOLO después del login
+  // NO ejecutar en la carga inicial para acelerar el login
   useEffect(() => {
-    async function initializeData() {
-      try {
-        if (getStoredLeads().length === 0) {
-          const { fetchLeads } = await import('./api/leadsApi');
-          localStorage.setItem('unicorn_leads', JSON.stringify(await fetchLeads()));
-        }
+    // Delay para no bloquear el login
+    const timer = setTimeout(() => {
+      async function initializeData() {
+        try {
+          if (getStoredLeads().length === 0) {
+            const { fetchLeads } = await import('./api/leadsApi');
+            localStorage.setItem('unicorn_leads', JSON.stringify(await fetchLeads()));
+          }
 
-        if (getStoredCampaigns().length === 0) {
-          const { fetchCampaigns } = await import('./api/leadsApi');
-          localStorage.setItem(
-            'unicorn_campaigns',
-            JSON.stringify(await fetchCampaigns())
-          );
+          if (getStoredCampaigns().length === 0) {
+            const { fetchCampaigns } = await import('./api/leadsApi');
+            localStorage.setItem(
+              'unicorn_campaigns',
+              JSON.stringify(await fetchCampaigns())
+            );
+          }
+        } catch (error) {
+          console.error('Error initializing data:', error);
         }
-      } catch (error) {
-        console.error('Error initializing data:', error);
       }
-    }
-    initializeData();
+      initializeData();
+    }, 2000); // Ejecutar 2 segundos después de cargar
+
+    return () => clearTimeout(timer);
   }, []);
 
-  // Cargar lugares (SerpApi)
+  // Cargar lugares - SOLO cuando sea necesario, NO en el login
+  // COMENTADO para acelerar carga inicial
+  /*
   useEffect(() => {
     async function loadPlaces() {
       try {
@@ -105,6 +116,7 @@ function App() {
     }
     loadPlaces();
   }, []);
+  */
 
   const handlePeriodChange = (period: Period) => {
     setSelectedPeriod(period);
@@ -152,20 +164,36 @@ function App() {
                               pb: { xs: '64px', md: 0 }, // Padding bottom para mobile nav
                             }}
                           >
-                            <Routes>
-                              <Route
-                                path="/"
-                                element={<Dashboard period={selectedPeriod} />}
-                              />
-                              <Route path="/leads" element={<LeadsList />} />
-                              <Route path="/campaigns" element={<Campaigns />} />
-                              <Route path="/conversations" element={<Conversations />} />
-                              <Route path="/reports" element={<ReportsAnalytics />} />
-                              <Route path="/settings" element={<Settings />} />
-                              <Route path="/clients" element={<ClientsConfig />} />
-                              <Route path="/help" element={<HelpCenter />} />
-                              <Route path="*" element={<Navigate to="/" replace />} />
-                            </Routes>
+                            {/* Suspense para lazy loading con fallback */}
+                            <Suspense
+                              fallback={
+                                <Box
+                                  sx={{
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    height: '100vh',
+                                  }}
+                                >
+                                  <CircularProgress />
+                                </Box>
+                              }
+                            >
+                              <Routes>
+                                <Route
+                                  path="/"
+                                  element={<Dashboard period={selectedPeriod} />}
+                                />
+                                <Route path="/leads" element={<LeadsList />} />
+                                <Route path="/campaigns" element={<Campaigns />} />
+                                <Route path="/conversations" element={<Conversations />} />
+                                <Route path="/reports" element={<ReportsAnalytics />} />
+                                <Route path="/settings" element={<Settings />} />
+                                <Route path="/clients" element={<ClientsConfig />} />
+                                <Route path="/help" element={<HelpCenter />} />
+                                <Route path="*" element={<Navigate to="/" replace />} />
+                              </Routes>
+                            </Suspense>
                           </Box>
                         </Box>
                       </Box>
