@@ -34,6 +34,8 @@
 .login-header img {
   width: 120px;
   height: auto;
+  margin: 0 auto;
+  display: block;
   filter: drop-shadow(0 0 20px rgba(25, 118, 210, 0.5));
 }
 
@@ -268,119 +270,65 @@
 }
 
 /* ========================================
-   RESPONSIVE: TABLET
-   ======================================== */
-@media (max-width: 900px) and (min-width: 601px) {
-  .login-container {
-    max-width: 500px;
-    padding: 44px 36px;
-  }
-}
-
-//* ========================================
-   RESPONSIVE: MOBILE - SOLO ESTA SECCIÓN
+   MOBILE RESPONSIVE
    ======================================== */
 @media (max-width: 600px) {
   .login-wrapper {
-    padding: 12px !important;
+    padding: 12px;
   }
   
   .login-container {
-    width: calc(100% - 24px) !important;
-    max-width: 95% !important;
-    padding: 50px 35px !important;
-    margin: 0 auto;
-    border-radius: 24px !important;
-    
-    /* MISMO ESTILO QUE DESKTOP */
-    background: rgba(255, 255, 255, 0.05) !important;
-    backdrop-filter: blur(10px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    
-    /* HALO NEÓN IGUAL AL DESKTOP */
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
-  }
-  
-  /* HOVER igual que desktop */
-  .login-container:hover {
-    transform: translateY(-5px) !important;
-    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6) !important;
-  }
-  
-  /* Logo CENTRADO */
-  .login-header {
-    text-align: center !important;
-    display: block !important;
-    margin-bottom: 48px !important;
+    width: calc(100% - 24px);
+    max-width: 95%;
+    padding: 50px 35px;
   }
   
   .login-header img {
-    width: 160px !important;
-    margin: 0 auto !important;
-    display: block !important;
+    width: 160px;
   }
   
-  /* Resto de estilos mobile... */
   .input-neon {
-    padding: 22px 20px !important;
-    font-size: 18px !important;
-    min-height: 60px !important;
-    border-radius: 14px !important;
+    padding: 22px 20px;
+    font-size: 18px;
+    min-height: 60px;
   }
   
   .password-toggle {
-    right: 12px !important;
-    min-width: 48px !important;
-    min-height: 48px !important;
+    min-width: 48px;
+    min-height: 48px;
   }
   
   .password-toggle svg {
-    font-size: 24px !important;
+    font-size: 24px;
   }
   
   .btn-neon {
-    padding: 24px !important;
-    font-size: 20px !important;
-    min-height: 64px !important;
-    border-radius: 14px !important;
+    padding: 24px;
+    font-size: 20px;
+    min-height: 64px;
   }
   
   .login-form {
-    gap: 24px !important;
+    gap: 24px;
   }
   
   .login-options {
-    margin-top: 16px !important;
-    flex-direction: column !important;
-    gap: 14px !important;
-    align-items: center !important;
+    flex-direction: column;
+    gap: 14px;
+    align-items: center;
   }
   
   .forgot-password,
   .signup {
-    font-size: 16px !important;
-    padding: 8px 0 !important;
-  }
-  
-  .separator {
-    margin: 32px 0 !important;
-  }
-  
-  .separator-text {
-    font-size: 14px !important;
-  }
-  
-  .oauth-buttons {
-    gap: 18px !important;
+    font-size: 16px;
   }
   
   .oauth-btn {
-    width: 70px !important;
-    height: 70px !important;
-    border-radius: 14px !important;
+    width: 70px;
+    height: 70px;
   }
   
   .oauth-btn svg {
-    font-size: 32px !important;
+    font-size: 32px;
   }
 }
