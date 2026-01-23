@@ -252,13 +252,28 @@ const Login: React.FC = () => {
             </div>
 
             <div className="oauth-buttons">
-              <button className="oauth-btn google" onClick={() => handleOAuthLogin('google')} type="button">
+              <button 
+                className="oauth-btn google" 
+                onClick={() => handleOAuthLogin('google')} 
+                type="button"
+                disabled={loading}
+              >
                 <GoogleIcon />
               </button>
-              <button className="oauth-btn facebook" onClick={() => handleOAuthLogin('facebook')} type="button">
+              <button 
+                className="oauth-btn facebook" 
+                onClick={() => handleOAuthLogin('facebook')} 
+                type="button"
+                disabled={loading}
+              >
                 <FacebookIcon />
               </button>
-              <button className="oauth-btn linkedin" onClick={() => handleOAuthLogin('linkedin')} type="button">
+              <button 
+                className="oauth-btn linkedin" 
+                onClick={() => handleOAuthLogin('linkedin')} 
+                type="button"
+                disabled={loading}
+              >
                 <LinkedInIcon />
               </button>
             </div>
