@@ -277,8 +277,8 @@
   }
 }
 
-/* ========================================
-   RESPONSIVE: MOBILE
+/* /* ========================================
+   RESPONSIVE: MOBILE - REEMPLAZAR SECCIÓN
    ======================================== */
 @media (max-width: 600px) {
   .login-wrapper {
@@ -292,63 +292,45 @@
     margin: 0 auto;
     border-radius: 24px !important;
     
-    /* BORDE NEÓN */
-    border: 2px solid rgba(25, 118, 210, 0.6) !important;
+    /* MISMO BORDE QUE DESKTOP */
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
     
-    /* EFECTO NEÓN ALREDEDOR Y DEBAJO */
+    /* MISMO EFECTO NEÓN QUE DESKTOP */
+    background: rgba(255, 255, 255, 0.05) !important;
+    backdrop-filter: blur(10px) !important;
+    
+    /* HALO NEÓN EXACTAMENTE IGUAL AL DESKTOP */
     box-shadow: 
-      /* Sombras oscuras de profundidad */
-      0 10px 40px rgba(0, 0, 0, 0.5),
-      0 20px 60px rgba(0, 0, 0, 0.3),
-      /* Neón azul ALREDEDOR de la caja */
-      0 0 30px rgba(25, 118, 210, 0.7),
-      0 0 60px rgba(25, 118, 210, 0.5),
-      0 0 90px rgba(25, 118, 210, 0.3),
-      /* Halo azul DEBAJO de la caja */
-      0 30px 70px rgba(25, 118, 210, 0.4),
-      0 40px 90px rgba(25, 118, 210, 0.3),
-      0 50px 110px rgba(25, 118, 210, 0.2),
-      /* Resplandor interior sutil */
-      inset 0 0 30px rgba(25, 118, 210, 0.1) !important;
-    
-    /* Animación de pulso */
-    animation: neon-glow 3s ease-in-out infinite !important;
+      /* Sombra principal de profundidad */
+      0 8px 32px rgba(0, 0, 0, 0.4),
+      /* Capas de neón azul brillante alrededor */
+      0 0 40px rgba(25, 118, 210, 0.6),
+      0 0 80px rgba(25, 118, 210, 0.4),
+      0 0 120px rgba(25, 118, 210, 0.3),
+      /* Halo de luz debajo de la caja (el efecto que se ve en desktop) */
+      0 20px 60px rgba(25, 118, 210, 0.5),
+      0 40px 100px rgba(25, 118, 210, 0.4),
+      0 60px 140px rgba(25, 118, 210, 0.3) !important;
   }
   
-  /* Animación del neón */
-  @keyframes neon-glow {
-    0%, 100% {
-      border-color: rgba(25, 118, 210, 0.6);
-      box-shadow: 
-        0 10px 40px rgba(0, 0, 0, 0.5),
-        0 20px 60px rgba(0, 0, 0, 0.3),
-        0 0 30px rgba(25, 118, 210, 0.7),
-        0 0 60px rgba(25, 118, 210, 0.5),
-        0 0 90px rgba(25, 118, 210, 0.3),
-        0 30px 70px rgba(25, 118, 210, 0.4),
-        0 40px 90px rgba(25, 118, 210, 0.3),
-        0 50px 110px rgba(25, 118, 210, 0.2),
-        inset 0 0 30px rgba(25, 118, 210, 0.1);
-    }
-    50% {
-      border-color: rgba(25, 118, 210, 0.8);
-      box-shadow: 
-        0 10px 40px rgba(0, 0, 0, 0.5),
-        0 20px 60px rgba(0, 0, 0, 0.3),
-        0 0 40px rgba(25, 118, 210, 0.9),
-        0 0 80px rgba(25, 118, 210, 0.7),
-        0 0 120px rgba(25, 118, 210, 0.5),
-        0 30px 70px rgba(25, 118, 210, 0.6),
-        0 40px 90px rgba(25, 118, 210, 0.5),
-        0 50px 110px rgba(25, 118, 210, 0.4),
-        inset 0 0 40px rgba(25, 118, 210, 0.2);
-    }
+  /* HOVER igual que desktop */
+  .login-container:hover {
+    transform: translateY(-5px) !important;
+    box-shadow: 
+      0 12px 48px rgba(0, 0, 0, 0.6),
+      0 0 50px rgba(25, 118, 210, 0.7),
+      0 0 100px rgba(25, 118, 210, 0.5),
+      0 0 150px rgba(25, 118, 210, 0.4),
+      0 30px 80px rgba(25, 118, 210, 0.6),
+      0 50px 120px rgba(25, 118, 210, 0.5),
+      0 70px 160px rgba(25, 118, 210, 0.4) !important;
   }
   
-  /* Logo más grande y centrado */
+  /* Logo CENTRADO con flex */
   .login-header {
     text-align: center !important;
     display: flex !important;
+    flex-direction: column !important;
     justify-content: center !important;
     align-items: center !important;
     margin-bottom: 48px !important;
@@ -357,6 +339,7 @@
   .login-header img {
     width: 160px !important;
     margin: 0 auto !important;
+    display: block !important;
   }
   
   /* Inputs más grandes */
