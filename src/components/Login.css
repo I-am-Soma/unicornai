@@ -277,8 +277,8 @@
   }
 }
 
-/* /* ========================================
-   RESPONSIVE: MOBILE - REEMPLAZAR SECCIÓN
+//* ========================================
+   RESPONSIVE: MOBILE - SOLO ESTA SECCIÓN
    ======================================== */
 @media (max-width: 600px) {
   .login-wrapper {
@@ -292,47 +292,25 @@
     margin: 0 auto;
     border-radius: 24px !important;
     
-    /* MISMO BORDE QUE DESKTOP */
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    
-    /* MISMO EFECTO NEÓN QUE DESKTOP */
+    /* MISMO ESTILO QUE DESKTOP */
     background: rgba(255, 255, 255, 0.05) !important;
     backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
     
-    /* HALO NEÓN EXACTAMENTE IGUAL AL DESKTOP */
-    box-shadow: 
-      /* Sombra principal de profundidad */
-      0 8px 32px rgba(0, 0, 0, 0.4),
-      /* Capas de neón azul brillante alrededor */
-      0 0 40px rgba(25, 118, 210, 0.6),
-      0 0 80px rgba(25, 118, 210, 0.4),
-      0 0 120px rgba(25, 118, 210, 0.3),
-      /* Halo de luz debajo de la caja (el efecto que se ve en desktop) */
-      0 20px 60px rgba(25, 118, 210, 0.5),
-      0 40px 100px rgba(25, 118, 210, 0.4),
-      0 60px 140px rgba(25, 118, 210, 0.3) !important;
+    /* HALO NEÓN IGUAL AL DESKTOP */
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
   }
   
   /* HOVER igual que desktop */
   .login-container:hover {
     transform: translateY(-5px) !important;
-    box-shadow: 
-      0 12px 48px rgba(0, 0, 0, 0.6),
-      0 0 50px rgba(25, 118, 210, 0.7),
-      0 0 100px rgba(25, 118, 210, 0.5),
-      0 0 150px rgba(25, 118, 210, 0.4),
-      0 30px 80px rgba(25, 118, 210, 0.6),
-      0 50px 120px rgba(25, 118, 210, 0.5),
-      0 70px 160px rgba(25, 118, 210, 0.4) !important;
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6) !important;
   }
   
-  /* Logo CENTRADO con flex */
+  /* Logo CENTRADO */
   .login-header {
     text-align: center !important;
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: center !important;
-    align-items: center !important;
+    display: block !important;
     margin-bottom: 48px !important;
   }
   
@@ -342,7 +320,7 @@
     display: block !important;
   }
   
-  /* Inputs más grandes */
+  /* Resto de estilos mobile... */
   .input-neon {
     padding: 22px 20px !important;
     font-size: 18px !important;
@@ -350,7 +328,6 @@
     border-radius: 14px !important;
   }
   
-  /* Password toggle más grande */
   .password-toggle {
     right: 12px !important;
     min-width: 48px !important;
@@ -361,7 +338,6 @@
     font-size: 24px !important;
   }
   
-  /* Botón SIGN IN más grande */
   .btn-neon {
     padding: 24px !important;
     font-size: 20px !important;
@@ -369,12 +345,10 @@
     border-radius: 14px !important;
   }
   
-  /* Form con más espacio */
   .login-form {
     gap: 24px !important;
   }
   
-  /* Links más grandes en columna */
   .login-options {
     margin-top: 16px !important;
     flex-direction: column !important;
@@ -388,7 +362,6 @@
     padding: 8px 0 !important;
   }
   
-  /* Separator más visible */
   .separator {
     margin: 32px 0 !important;
   }
@@ -397,7 +370,6 @@
     font-size: 14px !important;
   }
   
-  /* OAuth buttons más grandes */
   .oauth-buttons {
     gap: 18px !important;
   }
