@@ -332,3 +332,60 @@
     font-size: 32px;
   }
 }
+/* ========================================
+   NEON GLOW UNDER LOGIN BOX (RESTORED)
+   ======================================== */
+
+.login-container {
+  position: relative;
+  z-index: 2;
+}
+
+/* Glow layer */
+.login-container::before {
+  content: '';
+  position: absolute;
+  inset: -30px;
+  border-radius: 28px;
+  background: radial-gradient(
+    circle at center,
+    rgba(0, 234, 255, 0.35),
+    rgba(25, 118, 210, 0.25),
+    rgba(139, 92, 246, 0.15),
+    transparent 70%
+  );
+  filter: blur(40px);
+  opacity: 0.9;
+  z-index: -1;
+  animation: neonPulse 6s ease-in-out infinite;
+}
+
+/* Extra outer glow for depth */
+.login-container::after {
+  content: '';
+  position: absolute;
+  inset: -12px;
+  border-radius: 22px;
+  box-shadow:
+    0 0 60px rgba(0, 234, 255, 0.35),
+    0 0 120px rgba(25, 118, 210, 0.25);
+  opacity: 0.6;
+  z-index: -2;
+}
+
+/* Subtle breathing animation */
+@keyframes neonPulse {
+  0% {
+    opacity: 0.7;
+    transform: scale(0.98);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+  100% {
+    opacity: 0.7;
+    transform: scale(0.98);
+  }
+}
+
