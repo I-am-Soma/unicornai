@@ -1,4 +1,4 @@
-/* Login Container - MÁS GRANDE EN MOBILE */
+/* Login Container */
 .login-wrapper {
   display: flex;
   justify-content: center;
@@ -20,20 +20,6 @@
   transition: transform 0.3s ease;
 }
 
-/* MOBILE: Cuadro más grande */
-@media (max-width: 600px) {
-  .login-wrapper {
-    padding: 16px; /* Menos padding exterior */
-  }
-  
-  .login-container {
-    max-width: 100%; /* Full width en mobile */
-    width: 100%;
-    padding: 48px 32px; /* MÁS padding interno */
-    border-radius: 24px; /* Bordes más redondeados */
-  }
-}
-
 .login-container:hover {
   transform: translateY(-5px);
   box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
@@ -51,29 +37,11 @@
   filter: drop-shadow(0 0 20px rgba(25, 118, 210, 0.5));
 }
 
-/* MOBILE: Logo más grande */
-@media (max-width: 600px) {
-  .login-header {
-    margin-bottom: 40px;
-  }
-  
-  .login-header img {
-    width: 140px; /* Logo más grande */
-  }
-}
-
 /* Form */
 .login-form {
   display: flex;
   flex-direction: column;
   gap: 20px;
-}
-
-/* MOBILE: Más espacio entre campos */
-@media (max-width: 600px) {
-  .login-form {
-    gap: 24px;
-  }
 }
 
 /* Input Container */
@@ -94,15 +62,6 @@
   transition: all 0.3s ease;
   outline: none;
   font-family: 'Inter', sans-serif;
-}
-
-/* MOBILE: Inputs más grandes */
-@media (max-width: 600px) {
-  .input-neon {
-    padding: 18px 20px; /* MÁS alto */
-    font-size: 18px; /* Texto más grande */
-    border-radius: 14px;
-  }
 }
 
 .input-neon::placeholder {
@@ -137,19 +96,6 @@
   min-height: 44px;
 }
 
-/* MOBILE: Toggle más grande */
-@media (max-width: 600px) {
-  .password-toggle {
-    right: 12px;
-    min-width: 48px;
-    min-height: 48px;
-  }
-  
-  .password-toggle svg {
-    font-size: 24px;
-  }
-}
-
 .password-toggle:hover {
   color: #1976D2;
 }
@@ -175,16 +121,6 @@
   overflow: hidden;
   font-family: 'Inter', sans-serif;
   min-height: 48px;
-}
-
-/* MOBILE: Botón más grande */
-@media (max-width: 600px) {
-  .btn-neon {
-    padding: 20px 24px; /* MÁS alto */
-    font-size: 20px; /* Texto más grande */
-    border-radius: 14px;
-    min-height: 56px;
-  }
 }
 
 .btn-neon::before {
@@ -244,16 +180,6 @@
   margin-top: 8px;
 }
 
-/* MOBILE: Links más grandes */
-@media (max-width: 600px) {
-  .login-options {
-    margin-top: 12px;
-    flex-direction: column;
-    gap: 12px;
-    align-items: center;
-  }
-}
-
 .forgot-password,
 .signup {
   color: rgba(255, 255, 255, 0.7);
@@ -261,15 +187,6 @@
   font-size: 14px;
   transition: color 0.3s ease;
   padding: 4px 0;
-}
-
-/* MOBILE: Links más grandes */
-@media (max-width: 600px) {
-  .forgot-password,
-  .signup {
-    font-size: 16px;
-    padding: 8px 0;
-  }
 }
 
 .forgot-password:hover,
@@ -299,17 +216,6 @@
   font-weight: 500;
 }
 
-/* MOBILE: Separator más visible */
-@media (max-width: 600px) {
-  .separator {
-    margin: 28px 0;
-  }
-  
-  .separator-text {
-    font-size: 14px;
-  }
-}
-
 /* OAuth Buttons */
 .oauth-buttons {
   display: flex;
@@ -329,23 +235,6 @@
   justify-content: center;
   transition: all 0.3s ease;
   backdrop-filter: blur(10px);
-}
-
-/* MOBILE: OAuth buttons más grandes */
-@media (max-width: 600px) {
-  .oauth-buttons {
-    gap: 16px;
-  }
-  
-  .oauth-btn {
-    width: 64px; /* MÁS grandes */
-    height: 64px;
-    border-radius: 14px;
-  }
-  
-  .oauth-btn svg {
-    font-size: 28px;
-  }
 }
 
 .oauth-btn:hover {
@@ -378,175 +267,165 @@
   box-shadow: 0 0 20px rgba(0, 119, 181, 0.4);
 }
 
-/* Tablet adjustments */
+/* ========================================
+   RESPONSIVE: TABLET
+   ======================================== */
 @media (max-width: 900px) and (min-width: 601px) {
   .login-container {
     max-width: 500px;
     padding: 44px 36px;
   }
 }
+
 /* ========================================
-   SOLO PARA MOBILE - AGREGAR AL FINAL
+   RESPONSIVE: MOBILE
    ======================================== */
 @media (max-width: 600px) {
   .login-wrapper {
-    padding: 8px !important; /* Menos padding exterior */
+    padding: 12px !important;
   }
   
   .login-container {
-    width: calc(100% - 16px) !important; /* Casi todo el ancho */
-    max-width: 95% !important; /* 95% del ancho de pantalla */
-    padding: 60px 40px !important; /* MÁS padding interno */
+    width: calc(100% - 24px) !important;
+    max-width: 95% !important;
+    padding: 50px 35px !important;
     margin: 0 auto;
+    border-radius: 24px !important;
     
-    /* HALO/SOMBRA debajo de la caja */
-    box-shadow: 
-      0 8px 32px rgba(0, 0, 0, 0.4),
-      0 20px 60px rgba(25, 118, 210, 0.3),
-      0 30px 80px rgba(25, 118, 210, 0.2) !important;
-  }
-  
-  /* Logo centrado y más grande */
-  .login-header {
-    text-align: center !important;
-    display: flex !important;
-    justify-content: center !important;
-    margin-bottom: 48px !important;
-  }
-  
-  .login-header img {
-    width: 160px !important; /* Logo MÁS grande */
-    margin: 0 auto !important;
-  }
-  
-  /* Inputs MÁS grandes */
-  .input-neon {
-    padding: 22px 20px !important; /* MÁS alto */
-    font-size: 18px !important; /* Texto más grande */
-    min-height: 60px !important;
-  }
-  
-  /* Botón SIGN IN más grande */
-  .btn-neon {
-    padding: 24px !important; /* MÁS alto */
-    font-size: 20px !important; /* Texto más grande */
-    min-height: 64px !important;
-  }
-  
-  /* Links más grandes */
-  .forgot-password,
-  .signup {
-    font-size: 16px !important;
-  }
-  
-  /* OAuth buttons más grandes */
-  .oauth-btn {
-    width: 68px !important;
-    height: 68px !important;
-  }
-  
-  .oauth-btn svg {
-    font-size: 30px !important;
-  }
-}
-/* ========================================
-   SOLO PARA MOBILE - AGREGAR AL FINAL
-   ======================================== */
-@media (max-width: 600px) {
-  .login-wrapper {
-    padding: 8px !important; /* Menos padding exterior */
-  }
-  
-  .login-container {
-    width: calc(100% - 16px) !important; /* Casi todo el ancho */
-    max-width: 95% !important; /* 95% del ancho de pantalla */
-    padding: 60px 40px !important; /* MÁS padding interno */
-    margin: 0 auto;
+    /* BORDE NEÓN */
+    border: 2px solid rgba(25, 118, 210, 0.6) !important;
     
-    /* NEÓN ALREDEDOR DE TODA LA CAJA */
-    border: 2px solid rgba(25, 118, 210, 0.5) !important;
+    /* EFECTO NEÓN ALREDEDOR Y DEBAJO */
     box-shadow: 
-      /* Sombras oscuras */
-      0 8px 32px rgba(0, 0, 0, 0.4),
-      /* Neón azul alrededor */
-      0 0 20px rgba(25, 118, 210, 0.6),
-      0 0 40px rgba(25, 118, 210, 0.4),
-      0 0 60px rgba(25, 118, 210, 0.3),
-      /* Halo debajo */
-      0 20px 60px rgba(25, 118, 210, 0.3),
-      0 30px 80px rgba(25, 118, 210, 0.2),
-      /* Resplandor interior */
-      inset 0 0 20px rgba(25, 118, 210, 0.1) !important;
+      /* Sombras oscuras de profundidad */
+      0 10px 40px rgba(0, 0, 0, 0.5),
+      0 20px 60px rgba(0, 0, 0, 0.3),
+      /* Neón azul ALREDEDOR de la caja */
+      0 0 30px rgba(25, 118, 210, 0.7),
+      0 0 60px rgba(25, 118, 210, 0.5),
+      0 0 90px rgba(25, 118, 210, 0.3),
+      /* Halo azul DEBAJO de la caja */
+      0 30px 70px rgba(25, 118, 210, 0.4),
+      0 40px 90px rgba(25, 118, 210, 0.3),
+      0 50px 110px rgba(25, 118, 210, 0.2),
+      /* Resplandor interior sutil */
+      inset 0 0 30px rgba(25, 118, 210, 0.1) !important;
+    
+    /* Animación de pulso */
+    animation: neon-glow 3s ease-in-out infinite !important;
   }
   
-  /* Animación de pulso para el neón */
-  .login-container {
-    animation: neon-pulse 3s ease-in-out infinite !important;
-  }
-  
-  @keyframes neon-pulse {
+  /* Animación del neón */
+  @keyframes neon-glow {
     0%, 100% {
+      border-color: rgba(25, 118, 210, 0.6);
       box-shadow: 
-        0 8px 32px rgba(0, 0, 0, 0.4),
-        0 0 20px rgba(25, 118, 210, 0.6),
-        0 0 40px rgba(25, 118, 210, 0.4),
-        0 0 60px rgba(25, 118, 210, 0.3),
-        0 20px 60px rgba(25, 118, 210, 0.3),
-        0 30px 80px rgba(25, 118, 210, 0.2),
-        inset 0 0 20px rgba(25, 118, 210, 0.1);
+        0 10px 40px rgba(0, 0, 0, 0.5),
+        0 20px 60px rgba(0, 0, 0, 0.3),
+        0 0 30px rgba(25, 118, 210, 0.7),
+        0 0 60px rgba(25, 118, 210, 0.5),
+        0 0 90px rgba(25, 118, 210, 0.3),
+        0 30px 70px rgba(25, 118, 210, 0.4),
+        0 40px 90px rgba(25, 118, 210, 0.3),
+        0 50px 110px rgba(25, 118, 210, 0.2),
+        inset 0 0 30px rgba(25, 118, 210, 0.1);
     }
     50% {
+      border-color: rgba(25, 118, 210, 0.8);
       box-shadow: 
-        0 8px 32px rgba(0, 0, 0, 0.4),
-        0 0 30px rgba(25, 118, 210, 0.8),
-        0 0 60px rgba(25, 118, 210, 0.6),
-        0 0 90px rgba(25, 118, 210, 0.4),
-        0 20px 60px rgba(25, 118, 210, 0.4),
-        0 30px 80px rgba(25, 118, 210, 0.3),
-        inset 0 0 30px rgba(25, 118, 210, 0.2);
+        0 10px 40px rgba(0, 0, 0, 0.5),
+        0 20px 60px rgba(0, 0, 0, 0.3),
+        0 0 40px rgba(25, 118, 210, 0.9),
+        0 0 80px rgba(25, 118, 210, 0.7),
+        0 0 120px rgba(25, 118, 210, 0.5),
+        0 30px 70px rgba(25, 118, 210, 0.6),
+        0 40px 90px rgba(25, 118, 210, 0.5),
+        0 50px 110px rgba(25, 118, 210, 0.4),
+        inset 0 0 40px rgba(25, 118, 210, 0.2);
     }
   }
   
-  /* Logo centrado y más grande */
+  /* Logo más grande y centrado */
   .login-header {
     text-align: center !important;
     display: flex !important;
     justify-content: center !important;
+    align-items: center !important;
     margin-bottom: 48px !important;
   }
   
   .login-header img {
-    width: 160px !important; /* Logo MÁS grande */
+    width: 160px !important;
     margin: 0 auto !important;
   }
   
-  /* Inputs MÁS grandes */
+  /* Inputs más grandes */
   .input-neon {
-    padding: 22px 20px !important; /* MÁS alto */
-    font-size: 18px !important; /* Texto más grande */
+    padding: 22px 20px !important;
+    font-size: 18px !important;
     min-height: 60px !important;
+    border-radius: 14px !important;
+  }
+  
+  /* Password toggle más grande */
+  .password-toggle {
+    right: 12px !important;
+    min-width: 48px !important;
+    min-height: 48px !important;
+  }
+  
+  .password-toggle svg {
+    font-size: 24px !important;
   }
   
   /* Botón SIGN IN más grande */
   .btn-neon {
-    padding: 24px !important; /* MÁS alto */
-    font-size: 20px !important; /* Texto más grande */
+    padding: 24px !important;
+    font-size: 20px !important;
     min-height: 64px !important;
+    border-radius: 14px !important;
   }
   
-  /* Links más grandes */
+  /* Form con más espacio */
+  .login-form {
+    gap: 24px !important;
+  }
+  
+  /* Links más grandes en columna */
+  .login-options {
+    margin-top: 16px !important;
+    flex-direction: column !important;
+    gap: 14px !important;
+    align-items: center !important;
+  }
+  
   .forgot-password,
   .signup {
     font-size: 16px !important;
+    padding: 8px 0 !important;
+  }
+  
+  /* Separator más visible */
+  .separator {
+    margin: 32px 0 !important;
+  }
+  
+  .separator-text {
+    font-size: 14px !important;
   }
   
   /* OAuth buttons más grandes */
+  .oauth-buttons {
+    gap: 18px !important;
+  }
+  
   .oauth-btn {
-    width: 68px !important;
-    height: 68px !important;
+    width: 70px !important;
+    height: 70px !important;
+    border-radius: 14px !important;
   }
   
   .oauth-btn svg {
-    font-size: 30px !important;
+    font-size: 32px !important;
   }
 }
