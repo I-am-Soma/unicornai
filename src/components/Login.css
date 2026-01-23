@@ -385,3 +385,67 @@
     padding: 44px 36px;
   }
 }
+/* ========================================
+   SOLO PARA MOBILE - AGREGAR AL FINAL
+   ======================================== */
+@media (max-width: 600px) {
+  .login-wrapper {
+    padding: 8px !important; /* Menos padding exterior */
+  }
+  
+  .login-container {
+    width: calc(100% - 16px) !important; /* Casi todo el ancho */
+    max-width: 95% !important; /* 95% del ancho de pantalla */
+    padding: 60px 40px !important; /* MÁS padding interno */
+    margin: 0 auto;
+    
+    /* HALO/SOMBRA debajo de la caja */
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.4),
+      0 20px 60px rgba(25, 118, 210, 0.3),
+      0 30px 80px rgba(25, 118, 210, 0.2) !important;
+  }
+  
+  /* Logo centrado y más grande */
+  .login-header {
+    text-align: center !important;
+    display: flex !important;
+    justify-content: center !important;
+    margin-bottom: 48px !important;
+  }
+  
+  .login-header img {
+    width: 160px !important; /* Logo MÁS grande */
+    margin: 0 auto !important;
+  }
+  
+  /* Inputs MÁS grandes */
+  .input-neon {
+    padding: 22px 20px !important; /* MÁS alto */
+    font-size: 18px !important; /* Texto más grande */
+    min-height: 60px !important;
+  }
+  
+  /* Botón SIGN IN más grande */
+  .btn-neon {
+    padding: 24px !important; /* MÁS alto */
+    font-size: 20px !important; /* Texto más grande */
+    min-height: 64px !important;
+  }
+  
+  /* Links más grandes */
+  .forgot-password,
+  .signup {
+    font-size: 16px !important;
+  }
+  
+  /* OAuth buttons más grandes */
+  .oauth-btn {
+    width: 68px !important;
+    height: 68px !important;
+  }
+  
+  .oauth-btn svg {
+    font-size: 30px !important;
+  }
+}
