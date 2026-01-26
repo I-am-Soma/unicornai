@@ -11,111 +11,169 @@ const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
   apiVersion: '2024-04-10',
 });
 
-// ✅ CORS Headers
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+/* ============================
+   CORS HELPERS (CORRECTO)
+   ============================ */
+function corsHeaders(extra: Record<string, string> = {}) {
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers':
+      'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    ...extra,
+  };
+}
 
 Deno.serve(async (req) => {
-  // ✅ Handle OPTIONS (preflight)
+  /* ============================
+     PRE-FLIGHT
+     ============================ */
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response(null, {
+      status: 204,
+      headers: corsHeaders(),
+    });
+  }
+
+  /* ============================
+     METHOD VALIDATION
+     ============================ */
+  if (req.method !== 'POST') {
+    return new Response(
+      JSON.stringify({ error: 'Method not allowed' }),
+      {
+        status: 405,
+        headers: corsHeaders({ 'Content-Type': 'application/json' }),
+      }
+    );
   }
 
   try {
+    /* ============================
+       AUTH
+       ============================ */
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Missing Authorization header' }),
+        {
+          status: 401,
+          headers: corsHeaders({ 'Content-Type': 'application/json' }),
+        }
       );
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(token);
+
     if (authError || !user) {
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        {
+          status: 401,
+          headers: corsHeaders({ 'Content-Type': 'application/json' }),
+        }
       );
     }
 
+    /* ============================
+       BODY
+       ============================ */
     const { amount } = await req.json();
-    
-    if (!amount || amount < 5) {
+
+    if (!amount || typeof amount !== 'number' || amount < 5) {
       return new Response(
-        JSON.stringify({ error: 'Minimum top-up is $5' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Minimum top-up is $5 USD' }),
+        {
+          status: 400,
+          headers: corsHeaders({ 'Content-Type': 'application/json' }),
+        }
       );
     }
 
-    // Crear o obtener Stripe customer
+    /* ============================
+       STRIPE CUSTOMER
+       ============================ */
     let customerId: string;
-    
-    const { data: customer } = await supabase
+
+    const { data: existingCustomer } = await supabase
       .from('stripe_customers')
       .select('customer_id')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
-    if (customer?.customer_id) {
-      customerId = customer.customer_id;
+    if (existingCustomer?.customer_id) {
+      customerId = existingCustomer.customer_id;
     } else {
-      const newCustomer = await stripe.customers.create({
-        email: user.email,
-        metadata: { userId: user.id },
+      const customer = await stripe.customers.create({
+        email: user.email!,
+        metadata: {
+          user_id: user.id,
+        },
       });
-      
+
       await supabase.from('stripe_customers').insert({
         user_id: user.id,
-        customer_id: newCustomer.id,
+        customer_id: customer.id,
       });
-      
-      customerId = newCustomer.id;
+
+      customerId = customer.id;
     }
 
-    // Crear Checkout Session
+    /* ============================
+       CHECKOUT SESSION
+       ============================ */
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: 'payment',
       payment_method_types: ['card'],
-      line_items: [{
-        price_data: {
-          currency: 'usd',
-          product_data: {
-            name: 'Unicorn Wallet Top-up',
-            description: `Add $${amount} to your advertising wallet`,
+      line_items: [
+        {
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: 'Unicorn Wallet Top-up',
+              description: `Add $${amount} USD to your Unicorn wallet`,
+            },
+            unit_amount: Math.round(amount * 100),
           },
-          unit_amount: Math.round(amount * 100),
+          quantity: 1,
         },
-        quantity: 1,
-      }],
+      ],
       metadata: {
         user_id: user.id,
         type: 'wallet_topup',
         amount: amount.toString(),
       },
-      success_url: `${Deno.env.get('FRONTEND_URL')}/campaigns?topup=success`,
-      cancel_url: `${Deno.env.get('FRONTEND_URL')}/campaigns?topup=cancel`,
+      success_url: `${Deno.env.get(
+        'FRONTEND_URL'
+      )}/campaigns?topup=success`,
+      cancel_url: `${Deno.env.get(
+        'FRONTEND_URL'
+      )}/campaigns?topup=cancel`,
     });
 
     return new Response(
-      JSON.stringify({ url: session.url, sessionId: session.id }),
-      { 
+      JSON.stringify({
+        url: session.url,
+        sessionId: session.id,
+      }),
+      {
         status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: corsHeaders({ 'Content-Type': 'application/json' }),
       }
     );
   } catch (error: any) {
-    console.error('Top-up error:', error);
+    console.error('wallet-topup error:', error);
+
     return new Response(
       JSON.stringify({ error: error.message }),
-      { 
+      {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: corsHeaders({ 'Content-Type': 'application/json' }),
       }
     );
   }
