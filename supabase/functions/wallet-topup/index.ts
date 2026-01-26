@@ -11,36 +11,45 @@ const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
   apiVersion: '2024-04-10',
 });
 
-function corsResponse(body: any, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': '*',
-    },
-  });
-}
+// ✅ CORS Headers
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
 
 Deno.serve(async (req) => {
+  // ✅ Handle OPTIONS (preflight)
   if (req.method === 'OPTIONS') {
-    return corsResponse({}, 204);
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    const authHeader = req.headers.get('Authorization')!;
-    const token = authHeader.replace('Bearer ', '');
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Missing authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
+    const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
     if (authError || !user) {
-      return corsResponse({ error: 'Unauthorized' }, 401);
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const { amount } = await req.json();
     
     if (!amount || amount < 5) {
-      return corsResponse({ error: 'Minimum top-up is $5' }, 400);
+      return new Response(
+        JSON.stringify({ error: 'Minimum top-up is $5' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Crear o obtener Stripe customer
@@ -93,9 +102,21 @@ Deno.serve(async (req) => {
       cancel_url: `${Deno.env.get('FRONTEND_URL')}/campaigns?topup=cancel`,
     });
 
-    return corsResponse({ url: session.url, sessionId: session.id });
+    return new Response(
+      JSON.stringify({ url: session.url, sessionId: session.id }),
+      { 
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
   } catch (error: any) {
     console.error('Top-up error:', error);
-    return corsResponse({ error: error.message }, 500);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
   }
 });
