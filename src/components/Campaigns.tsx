@@ -95,13 +95,13 @@ const Campaigns: React.FC = () => {
 
   const loadWallet = async () => {
   try {
-    const clientId = localStorage.getItem('client_id');
-    if (!clientId) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
 
     const { data, error } = await supabase
       .from('wallets')
       .select('balance')
-      .eq('client_id', clientId)
+      .eq('user_id', user.id)
       .single();
 
     if (error) {
@@ -116,7 +116,6 @@ const Campaigns: React.FC = () => {
     console.error('Unexpected wallet error:', err);
   }
 };
-
 
   const loadCampaigns = async () => {
     const data = await fetchCampaigns();
