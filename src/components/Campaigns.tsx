@@ -26,6 +26,8 @@ import {
   useMediaQuery,
   Divider,
   InputAdornment,
+  ToggleButtonGroup,
+  ToggleButton,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -73,6 +75,9 @@ const Campaigns: React.FC = () => {
     status: 'Active',
   });
 
+  // Preset amounts for quick selection
+  const presetAmounts = [10, 25, 50, 100, 500];
+
   useEffect(() => {
     loadAll();
   }, []);
@@ -113,7 +118,7 @@ const Campaigns: React.FC = () => {
     );
   };
 
-  // 💳 Stripe Top-up
+  // 💳 Stripe Top-up - Fixed to redirect at top level
   const handleTopup = async () => {
     if (topupAmount < 5) {
       setError('Minimum top-up is $5');
@@ -140,7 +145,12 @@ const Campaigns: React.FC = () => {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Stripe error');
 
-      window.location.href = json.url;
+      // Use window.top to redirect at the top level, avoiding iframe issues
+      if (window.top) {
+        window.top.location.href = json.url;
+      } else {
+        window.location.href = json.url;
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -292,26 +302,130 @@ const Campaigns: React.FC = () => {
         })}
       </Grid>
 
-      {/* TOPUP */}
-      <Dialog open={openTopup} onClose={() => setOpenTopup(false)}>
-        <DialogTitle>Add Funds</DialogTitle>
+      {/* TOPUP DIALOG WITH PRESET AMOUNTS */}
+      <Dialog open={openTopup} onClose={() => setOpenTopup(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Add Funds to Wallet</DialogTitle>
         <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Add funds to your advertising wallet. Minimum top-up is $5.
+          </Typography>
+
+          {/* Preset Amount Buttons */}
+          <Typography variant="subtitle2" sx={{ mb: 1 }}>
+            Amount (USD)
+          </Typography>
+          <ToggleButtonGroup
+            value={topupAmount}
+            exclusive
+            onChange={(e, newValue) => {
+              if (newValue !== null) {
+                setTopupAmount(newValue);
+              }
+            }}
+            aria-label="topup amount"
+            fullWidth
+            sx={{ mb: 2 }}
+          >
+            {presetAmounts.map((amount) => (
+              <ToggleButton 
+                key={amount} 
+                value={amount}
+                sx={{
+                  '&.Mui-selected': {
+                    backgroundColor: theme.palette.primary.main,
+                    color: theme.palette.primary.contrastText,
+                    '&:hover': {
+                      backgroundColor: theme.palette.primary.dark,
+                    }
+                  }
+                }}
+              >
+                ${amount}
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
+
+          {/* Custom Amount Input */}
           <TextField
             fullWidth
             type="number"
-            label="Amount"
+            label="Custom Amount"
             value={topupAmount}
             onChange={(e) => setTopupAmount(Number(e.target.value))}
             InputProps={{
               startAdornment: <InputAdornment position="start">$</InputAdornment>,
             }}
-            sx={{ mt: 2 }}
+            helperText="Or enter a custom amount (minimum $5)"
           />
+
+          <Alert severity="info" sx={{ mt: 2 }}>
+            You'll be redirected to Stripe Checkout to complete your payment securely.
+          </Alert>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenTopup(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleTopup} disabled={walletLoading}>
-            Add ${topupAmount}
+          <Button onClick={() => setOpenTopup(false)} disabled={walletLoading}>
+            Cancel
+          </Button>
+          <Button 
+            variant="contained" 
+            onClick={handleTopup} 
+            disabled={walletLoading || topupAmount < 5}
+            startIcon={walletLoading ? <CircularProgress size={20} /> : <MoneyIcon />}
+          >
+            {walletLoading ? 'Processing...' : `Add $${topupAmount}`}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* CAMPAIGN DIALOG */}
+      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          {currentCampaign ? 'Edit Campaign' : 'New Campaign'}
+        </DialogTitle>
+        <DialogContent>
+          <TextField
+            fullWidth
+            label="Campaign Name"
+            value={formData.name || ''}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            sx={{ mt: 2, mb: 2 }}
+          />
+          <TextField
+            fullWidth
+            label="Description"
+            multiline
+            rows={3}
+            value={formData.description || ''}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            fullWidth
+            type="number"
+            label="Budget"
+            value={formData.budget || 0}
+            onChange={(e) => setFormData({ ...formData, budget: Number(e.target.value) })}
+            InputProps={{
+              startAdornment: <InputAdornment position="start">$</InputAdornment>,
+            }}
+            sx={{ mb: 2 }}
+          />
+          <FormControl fullWidth>
+            <InputLabel>Status</InputLabel>
+            <Select
+              value={formData.status || 'Active'}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+              label="Status"
+            >
+              <MenuItem value="Active">Active</MenuItem>
+              <MenuItem value="Paused">Paused</MenuItem>
+            </Select>
+          </FormControl>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleSave}>
+            {currentCampaign ? 'Update' : 'Create'}
           </Button>
         </DialogActions>
       </Dialog>
