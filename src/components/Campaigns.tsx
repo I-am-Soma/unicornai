@@ -80,6 +80,37 @@ const Campaigns: React.FC = () => {
 
   useEffect(() => {
     loadAll();
+    
+    // Check for Stripe success/cancel in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const topupStatus = urlParams.get('topup');
+    
+    if (topupStatus === 'success') {
+      setSuccess('Payment successful! Your wallet is being updated...');
+      // Remove query param from URL
+      window.history.replaceState({}, '', '/campaigns');
+      
+      // Poll for wallet update multiple times
+      let pollCount = 0;
+      const maxPolls = 10;
+      const pollInterval = setInterval(async () => {
+        pollCount++;
+        console.log(`🔄 Polling wallet update (${pollCount}/${maxPolls})`);
+        
+        await loadWallet();
+        
+        if (pollCount >= maxPolls) {
+          clearInterval(pollInterval);
+          console.log('✅ Stopped polling');
+        }
+      }, 2000); // Poll every 2 seconds
+      
+      // Clean up interval on unmount
+      return () => clearInterval(pollInterval);
+    } else if (topupStatus === 'cancel') {
+      setError('Payment cancelled');
+      window.history.replaceState({}, '', '/campaigns');
+    }
   }, []);
 
   const loadAll = async () => {
@@ -94,28 +125,37 @@ const Campaigns: React.FC = () => {
   };
 
   const loadWallet = async () => {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.log('❌ No user found when loading wallet');
+        return;
+      }
 
-    const { data, error } = await supabase
-      .from('wallets')
-      .select('balance')
-      .eq('user_id', user.id)
-      .single();
+      console.log('💰 Loading wallet for user:', user.id);
 
-    if (error) {
-      console.error('Error loading wallet:', error);
-      return;
+      const { data, error } = await supabase
+        .from('wallets')
+        .select('balance')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) {
+        console.error('❌ Error loading wallet:', error);
+        return;
+      }
+
+      if (data) {
+        const newBalance = Number(data.balance);
+        console.log('✅ Wallet balance loaded:', newBalance);
+        setWalletBalance(newBalance);
+      } else {
+        console.log('⚠️ No wallet data returned');
+      }
+    } catch (err) {
+      console.error('❌ Unexpected error in loadWallet:', err);
     }
-
-    if (data) {
-      setWalletBalance(Number(data.balance));
-    }
-  } catch (err) {
-    console.error('Unexpected wallet error:', err);
-  }
-};
+  };
 
   const loadCampaigns = async () => {
     const data = await fetchCampaigns();
